@@ -8,44 +8,32 @@
 #include <vector>
 #include <string>
 
-// Forward declarations for non-Component classes
+// Forward declarations
 class TextureManager;
-
-struct Animation {
-    int index;
-    int frames;
-    int speed;  // Frame delay in game ticks
-    
-    Animation() : index(0), frames(0), speed(100) {}
-    Animation(int i, int f, int s) : index(i), frames(f), speed(s) {}
-};
 
 class AnimationComponent : public Component {
 private:
-    std::map<std::string, Animation> animations;
+    std::map<std::string, std::vector<SDL_Texture*>> animations;
+    std::map<std::string, int> animationSpeeds;
+
+    std::string currentAnimation;
     int animIndex = 0;
     int animSpeed = 100;
-    int animFrames = 1;
     
-    SDL_Texture* spriteSheet;
     SDL_Rect srcRect, destRect;
-    
     PositionComponent* position;
     
-    std::string currentAnimation = "idle";
     Uint32 lastFrameTime = 0;
-    bool ownsTexture = false;  // Track if we own the texture
-    
+    bool animated = false;
+    bool flip = false;
+
 public:
-    bool animated = true;
-    
     AnimationComponent() = default;
     ~AnimationComponent();
     
     void init() override;
-    void addAnimation(const std::string& name, int index, int frames, int speed);
+    void addAnimation(const std::string& name, const std::vector<std::string>& filePaths, int speed);
     void play(const std::string& animName);
-    void setTexture(SDL_Texture* texture, bool takeOwnership = false);
     void update() override;
     void draw() override;
 };

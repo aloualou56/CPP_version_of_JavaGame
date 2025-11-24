@@ -26,7 +26,7 @@ private:
     void placeBushes();
     void placeRocks();
     
-    // Helper to get random position
+    // Βοηθητική συνάρτηση για λήψη τυχαίας θέσης
     float getRandomX();
     float getRandomY();
     int getRandomGrassType();

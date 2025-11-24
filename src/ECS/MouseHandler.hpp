@@ -17,14 +17,14 @@ public:
     void update() override {
         attacking = false;
         
-        // Check for mouse button press
+        // Ελέγχει για πάτημα κουμπιού ποντικιού
         if (Game::event.type == SDL_MOUSEBUTTONDOWN) {
             if (Game::event.button.button == SDL_BUTTON_LEFT) {
                 attacking = true;
             }
         }
         
-        // Also check for R key attack (keyboard alternative)
+        // Επίσης ελέγχει για επίθεση με πλήκτρο R (εναλλακτική από πληκτρολόγιο)
         if (Game::event.type == SDL_KEYDOWN) {
             if (Game::event.key.keysym.sym == SDLK_r) {
                 attacking = true;

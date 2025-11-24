@@ -13,11 +13,11 @@ Camera::~Camera() {
 }
 
 void Camera::update(Vector2D playerPosition) {
-    // Center camera on player
+    // Κεντράρει την κάμερα στον παίκτη
     position.x = playerPosition.x - (width / 2.0f);
     position.y = playerPosition.y - (height / 2.0f);
     
-    // Clamp camera to world bounds
+    // Περιορίζει την κάμερα στα όρια του κόσμου
     if (position.x < 0) position.x = 0;
     if (position.y < 0) position.y = 0;
     if (position.x + width > worldWidth) position.x = worldWidth - width;

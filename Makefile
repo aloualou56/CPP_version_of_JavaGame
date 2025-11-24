@@ -17,10 +17,23 @@ SOURCES = $(SRC_DIR)/main.cpp \
           $(SRC_DIR)/Map.cpp \
           $(SRC_DIR)/Vector2D.cpp \
           $(SRC_DIR)/Collision.cpp \
-          $(SRC_DIR)/Camera.cpp
+          $(SRC_DIR)/Camera.cpp \
+          $(SRC_DIR)/EnvironmentAssets.cpp \
+          $(SRC_DIR)/Environment/Environment.cpp
 
 # Object files
-OBJECTS = $(SOURCES:$(SRC_DIR)/%.cpp=$(OBJ_DIR)/%.o)
+OBJECTS = $(OBJ_DIR)/main.o \
+          $(OBJ_DIR)/Game.o \
+          $(OBJ_DIR)/TextureManager.o \
+          $(OBJ_DIR)/GameObject.o \
+          $(OBJ_DIR)/Map.o \
+          $(OBJ_DIR)/Vector2D.o \
+          $(OBJ_DIR)/Collision.o \
+          $(OBJ_DIR)/Camera.o \
+          $(OBJ_DIR)/EnvironmentAssets.o \
+          $(OBJ_DIR)/Environment.o \
+          $(OBJ_DIR)/SpriteComponent.o \
+          $(OBJ_DIR)/AnimationComponent.o
 
 # Target executable
 TARGET = $(BIN_DIR)/Game
@@ -38,6 +51,16 @@ $(TARGET): $(OBJECTS)
 
 # Compile
 $(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp | $(OBJ_DIR)
+	$(CXX) $(CXXFLAGS) $(SDL_CFLAGS) -I$(SRC_DIR) -c $< -o $@
+
+# Special rules for subdirectories
+$(OBJ_DIR)/Environment.o: $(SRC_DIR)/Environment/Environment.cpp | $(OBJ_DIR)
+	$(CXX) $(CXXFLAGS) $(SDL_CFLAGS) -I$(SRC_DIR) -c $< -o $@
+
+$(OBJ_DIR)/SpriteComponent.o: $(SRC_DIR)/ECS/SpriteComponent.cpp | $(OBJ_DIR)
+	$(CXX) $(CXXFLAGS) $(SDL_CFLAGS) -I$(SRC_DIR) -c $< -o $@
+
+$(OBJ_DIR)/AnimationComponent.o: $(SRC_DIR)/ECS/AnimationComponent.cpp | $(OBJ_DIR)
 	$(CXX) $(CXXFLAGS) $(SDL_CFLAGS) -I$(SRC_DIR) -c $< -o $@
 
 # Clean

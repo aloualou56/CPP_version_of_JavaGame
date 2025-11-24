@@ -1,10 +1,15 @@
 #ifndef SpriteComponent_hpp
 #define SpriteComponent_hpp
 
-#include "Componets.hpp"
+#include "ECS.hpp"
+#include "PositionComponent.hpp"
 #include "SDL.h"
-#include "../Camera.hpp"
+#include <iostream>
 
+// Forward declarations for non-Component classes
+class TextureManager;
+class Game;
+class Camera;
 
 class SpriteComponent : public Component {
     private:
@@ -15,51 +20,13 @@ class SpriteComponent : public Component {
     public:
       
       SpriteComponent() = default;
-      SpriteComponent(const char* path) {
+      SpriteComponent(const char* path);
+      ~SpriteComponent();
 
-        setTex(path); //kalei to void setTex gia na kanei load to texture
-        std::cout << "loaded " << path << std::endl;
-
-      }
-      ~SpriteComponent() {
-        SDL_DestroyTexture(texture);
-      }
-
-      void setTex(const char* path) {
-        texture = TextureManager::LoadTexture(path);
-      }
-
-      void init() override {
-
-        position = &entity->getComponent<PositionComponent>();
-
-        srcRect.x = srcRect.y = 0;
-        srcRect.w = position->width;
-        srcRect.h = position->height;
-        
-
-      }
-
-      void update() override {
-
-        // Convert world position to screen position using camera
-        if (Game::camera) {
-            destRect.x = Game::camera->worldToScreenX(position->position.x);
-            destRect.y = Game::camera->worldToScreenY(position->position.y);
-        } else {
-            destRect.x = static_cast<int>(position->position.x);
-            destRect.y = static_cast<int>(position->position.y);
-        }
-        destRect.w = position->width * position->scale;
-        destRect.h = position->height * position->scale;
-
-      }
-
-      void draw() override {
-
-        TextureManager::Draw(texture, srcRect, destRect);
-
-      }
+      void setTex(const char* path);
+      void init() override;
+      void update() override;
+      void draw() override;
 };
 
 #endif

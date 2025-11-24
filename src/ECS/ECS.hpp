@@ -37,9 +37,13 @@ class Component {
 
     public:
       Entity* entity;
-      virtual void init() {}
-      virtual void update() {}
-      virtual void draw() {}
+  virtual void init() {}
+  virtual void update() {}
+  virtual void draw() {}
+  // Αν αυτό το component πρέπει να λαμβάνεται υπόψη για τη σειρά σχεδίασης
+  virtual bool isDrawable() { return false; }
+  // Τάξη σχεδίασης / βάθος (μεγαλύτερο = σχεδιάζεται αργότερα / μπροστά)
+  virtual int drawOrder() { return 0; }
 
       virtual ~Component() {}
 };
@@ -62,11 +66,18 @@ class Entity {
       void draw() {
         for(auto& c : components) c->draw();
       }
+      // Επιστρέφει δείκτες (raw pointers) σε components (χρησιμοποιείται από τον Manager για
+      // ταξινομημένη σχεδίαση)
+      std::vector<Component*> getComponentPointers() {
+        std::vector<Component*> out;
+        for (auto &u : components) out.push_back(u.get());
+        return out;
+      }
       bool isActive() const {return active;}
       void destroy() {active = false;}
 
       template <typename T> bool hasComponent() const {
-        ComponentID componentID = getComponentTypeID<T>(); //extra code apo chatgpt to eftiaxe to themataki mas
+        ComponentID componentID = getComponentTypeID<T>(); // πρόσθετος κώδικας — παράγει το id του component
         return componentBitSet[componentID];
       }
 
@@ -106,7 +117,20 @@ class Manager {
 
       void draw() {
 
-        for(auto& e : entities) e->draw();
+        // Συλλέγει τα components που είναι ζωγραφίσιμα από όλες τις οντότητες και τα ταξινομεί με βάση το drawOrder (y)
+        std::vector<Component*> drawables;
+        for(auto& e : entities) {
+          auto comps = e->getComponentPointers();
+          for (auto *c : comps) {
+            if (c && c->isDrawable()) drawables.push_back(c);
+          }
+        }
+
+        std::sort(drawables.begin(), drawables.end(), [](Component* a, Component* b) {
+          return a->drawOrder() < b->drawOrder();
+        });
+
+        for (auto *c : drawables) if (c) c->draw();
       }
 
       void refresh() {
@@ -127,6 +151,9 @@ class Manager {
         entities.emplace_back(std::move(uPtr));
         return *e;
       }
+
+      // Εκθέτει τις οντότητες για ελέγχους σύγκρουσης και εξωτερική επανάληψη
+      const std::vector<std::unique_ptr<Entity>>& getEntities() const { return entities; }
 };
 
 #endif

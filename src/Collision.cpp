@@ -2,8 +2,11 @@
 #include "Map.hpp"
 
 bool Collision::AABB(const SDL_Rect& recA, const SDL_Rect& recB) {
-    
-    if(recA.x + recA.w >= recB.x && recB.x + recB.w >= recA.x && recA.y + recA.h >= (recB.y - 50) && (recB.y - 50) + (recB.h + 60) >= recA.y) {
+    // Τυπική δοκιμή επικάλυψης AABB (χωρίς επιπλέον περιθώρια)
+    if (recA.x < recB.x + recB.w &&
+        recA.x + recA.w > recB.x &&
+        recA.y < recB.y + recB.h &&
+        recA.y + recA.h > recB.y) {
         return true;
     }
 

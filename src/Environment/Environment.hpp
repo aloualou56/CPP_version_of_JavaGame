@@ -3,23 +3,23 @@
 
 #include <string>
 
-// Forward declarations
+// Προκαταρκτικές δηλώσεις
 class Manager;
 class Entity;
 
 // Helper functions to create environment entities
 namespace EnvironmentFactory {
     
-    // Create a grass decoration entity
+    // Δημιουργεί μια οντότητα διακόσμησης χόρτου
     Entity& createEnvGrass(Manager& manager, int grassType, float x, float y);
     
-    // Create a thamnos tonia bush entity
+    // Δημιουργεί μια οντότητα θάμνου (thamnos tonia)
     Entity& createThamnosTonia(Manager& manager, float x, float y);
     
-    // Create a tree entity
+    // Δημιουργεί μια οντότητα δέντρου
     Entity& createTree(Manager& manager, float x, float y);
     
-    // Create a rock entity
+    // Δημιουργεί μια οντότητα βράχου
     Entity& createRock(Manager& manager, float x, float y);
 }
 

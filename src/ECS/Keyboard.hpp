@@ -13,7 +13,8 @@ class Keyboard : public Component {
 
       void init() override {
         position = &entity->getComponent<PositionComponent>();
-        // Ensure AnimationComponent exists before trying to get it, although order in Game.cpp ensures it
+        // Εξασφαλίζει ότι το AnimationComponent υπάρχει πριν το αποκτήσει, αν και η σειρά στο Game.cpp το
+        // διασφαλίζει
         if (entity->hasComponent<AnimationComponent>()) {
             animation = &entity->getComponent<AnimationComponent>();
         } else {
@@ -22,17 +23,17 @@ class Keyboard : public Component {
       }
 
       void update() override {
-        // Use continuous keyboard state checking instead of discrete events
+        // Χρησιμοποιεί συνεχή έλεγχο κατάστασης πληκτρολογίου αντί για διακριτά γεγονότα
         const Uint8* keyState = SDL_GetKeyboardState(NULL);
         
-        // Reset velocity every frame
+        // Επαναφέρει την ταχύτητα κάθε καρέ
         position->velocity.x = 0;
         position->velocity.y = 0;
         
-        // Track if any movement is happening
+        // Παρακολουθεί αν υπάρχει οποιαδήποτε κίνηση
         bool isMoving = false;
         
-        // Check all movement keys and set velocity
+        // Ελέγχει όλα τα πλήκτρα κίνησης και θέτει την ταχύτητα
         if (keyState[SDL_SCANCODE_W]) {
             position->velocity.y = -1;
             isMoving = true;
@@ -50,13 +51,24 @@ class Keyboard : public Component {
             isMoving = true;
         }
         
-        // Update animation based on movement state
+        // Ενημερώνει το animation με βάση την κατάσταση κίνησης, αλλά δεν διακόπτει μη-επαναλαμβανόμενες animations
         if (animation) {
-            if (isMoving) {
-                animation->play("Walk");
-            } else {
-                animation->play("Idle");
+            if (!animation->isBusy()) {
+                if (isMoving) {
+                    if (animation->getCurrentAnimation() != "Walk") animation->play("Walk");
+                } else {
+                    if (animation->getCurrentAnimation() != "Idle") animation->play("Idle");
+                }
             }
+        }
+        // Ορίζει την κατεύθυνση που κοιτάει: A = αριστερά (flip), D = δεξιά (χωρίς flip)
+        if (animation) {
+            if (keyState[SDL_SCANCODE_A]) {
+                animation->setFlip(true);
+            } else if (keyState[SDL_SCANCODE_D]) {
+                animation->setFlip(false);
+            }
+            // Attack is handled in Game event loop to ensure a single trigger per keydown
         }
       }
 };

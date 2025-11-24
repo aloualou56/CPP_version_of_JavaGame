@@ -1,4 +1,5 @@
 #include "Collision.hpp"
+#include "Map.hpp"
 
 bool Collision::AABB(const SDL_Rect& recA, const SDL_Rect& recB) {
     
@@ -7,4 +8,13 @@ bool Collision::AABB(const SDL_Rect& recA, const SDL_Rect& recB) {
     }
 
     return false;
+}
+
+bool Collision::checkTileCollision(float x, float y, Map* map) {
+    if (map == nullptr) {
+        return false;
+    }
+    
+    int tileType = map->getTileAt(static_cast<int>(x), static_cast<int>(y));
+    return map->isSolidTile(tileType);
 }

@@ -5,5 +5,7 @@
 #include "SpriteComponent.hpp"
 #include "Keyboard.hpp"
 #include "ColliderComponent.hpp"
+#include "AnimationComponent.hpp"
+#include "MouseHandler.hpp"
 
 #endif

@@ -10,12 +10,12 @@
 #include "Collision.hpp"
 
 
-Map* map;
 EnvironmentAssets* environmentAssets;
 
 SDL_Renderer* Game::renderer = nullptr;
 SDL_Event Game::event;
 Camera* Game::camera = nullptr;
+Map* Game::map = nullptr;
 
 Manager manager;
 auto& player(manager.addEntity());
@@ -60,8 +60,7 @@ void Game::init(const char *title, int xpos, int ypos, int width, int height, bo
     environmentAssets->generateEnvironment();
 
     //ECS implementation - Setup player with animations
-    player.addComponent<PositionComponent>(2400.0f, 2400.0f);  // Start in center of world
-    player.addComponent<PositionComponent>(2);  // Scale 2x
+    player.addComponent<PositionComponent>(2400.0f, 2400.0f, 48, 48, 2);  // Start in center of world, scale 2x
     player.addComponent<SpriteComponent>("sprites/characters/cutted-character/standing_sprites/standing_1.png");
     player.addComponent<Keyboard>();
     player.addComponent<MouseHandler>();
@@ -101,7 +100,9 @@ void Game::update() {
     }
     
     if(Collision::AABB(player.getComponent<ColliderComponent>().collider,  wall.getComponent<ColliderComponent>().collider)) {
-        player.getComponent<PositionComponent>().velocity * -1;
+        auto& playerPos = player.getComponent<PositionComponent>();
+        playerPos.velocity.x *= -1;
+        playerPos.velocity.y *= -1;
         std::cout << "wall got hit!" << std::endl;
     }
                        

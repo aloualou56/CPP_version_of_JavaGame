@@ -33,7 +33,8 @@ OBJECTS = $(OBJ_DIR)/main.o \
           $(OBJ_DIR)/EnvironmentAssets.o \
           $(OBJ_DIR)/Environment.o \
           $(OBJ_DIR)/SpriteComponent.o \
-          $(OBJ_DIR)/AnimationComponent.o
+          $(OBJ_DIR)/AnimationComponent.o \
+          $(OBJ_DIR)/PositionComponent.o
 
 # Target executable
 TARGET = $(BIN_DIR)/Game
@@ -61,6 +62,9 @@ $(OBJ_DIR)/SpriteComponent.o: $(SRC_DIR)/ECS/SpriteComponent.cpp | $(OBJ_DIR)
 	$(CXX) $(CXXFLAGS) $(SDL_CFLAGS) -I$(SRC_DIR) -c $< -o $@
 
 $(OBJ_DIR)/AnimationComponent.o: $(SRC_DIR)/ECS/AnimationComponent.cpp | $(OBJ_DIR)
+	$(CXX) $(CXXFLAGS) $(SDL_CFLAGS) -I$(SRC_DIR) -c $< -o $@
+
+$(OBJ_DIR)/PositionComponent.o: $(SRC_DIR)/ECS/PositionComponent.cpp | $(OBJ_DIR)
 	$(CXX) $(CXXFLAGS) $(SDL_CFLAGS) -I$(SRC_DIR) -c $< -o $@
 
 # Clean

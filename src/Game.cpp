@@ -61,7 +61,31 @@ void Game::init(const char *title, int xpos, int ypos, int width, int height, bo
 
     //ECS implementation - Setup player with animations
     player.addComponent<PositionComponent>(2400.0f, 2400.0f, 48, 48, 2);  // Start in center of world, scale 2x
-    player.addComponent<SpriteComponent>("sprites/characters/cutted-character/standing_sprites/standing_1.png");
+
+    AnimationComponent& playerAnim = player.addComponent<AnimationComponent>();
+
+    std::vector<std::string> idleAnim = {
+        "sprites/characters/cutted-character/standing_sprites/standing_1.png",
+        "sprites/characters/cutted-character/standing_sprites/standing_2.png",
+        "sprites/characters/cutted-character/standing_sprites/standing_3.png",
+        "sprites/characters/cutted-character/standing_sprites/standing_4.png",
+        "sprites/characters/cutted-character/standing_sprites/standing_5.png",
+        "sprites/characters/cutted-character/standing_sprites/standing_6.png"
+    };
+
+    std::vector<std::string> walkAnim = {
+        "sprites/characters/cutted-character/walking_sprites/walking_1.png",
+        "sprites/characters/cutted-character/walking_sprites/walking_2.png",
+        "sprites/characters/cutted-character/walking_sprites/walking_3.png",
+        "sprites/characters/cutted-character/walking_sprites/walking_4.png",
+        "sprites/characters/cutted-character/walking_sprites/walking_5.png",
+        "sprites/characters/cutted-character/walking_sprites/walking_6.png"
+    };
+
+    playerAnim.addAnimation("Idle", idleAnim, 200);
+    playerAnim.addAnimation("Walk", walkAnim, 100);
+    playerAnim.play("Idle");
+
     player.addComponent<Keyboard>();
     player.addComponent<MouseHandler>();
     player.addComponent<ColliderComponent>("player");

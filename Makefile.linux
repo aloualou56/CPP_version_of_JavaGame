@@ -1,0 +1,89 @@
+# ==========================================
+# Cross-compilation Makefile for Linux to Windows
+# ==========================================
+CXX = x86_64-w64-mingw32-g++
+
+# SDL2 paths for cross-compilation
+SDL_INCLUDE_PATH = /tmp/SDL2-2.30.9/x86_64-w64-mingw32/include
+SDL_LIB_PATH = /tmp/SDL2-2.30.9/x86_64-w64-mingw32/lib
+SDL_IMAGE_INCLUDE_PATH = /tmp/SDL2_image-2.8.2/x86_64-w64-mingw32/include
+SDL_IMAGE_LIB_PATH = /tmp/SDL2_image-2.8.2/x86_64-w64-mingw32/lib
+
+# Compiler flags
+CXXFLAGS = -std=c++17 -Wall -Wextra -g -Dmain=SDL_main \
+           -I$(SDL_INCLUDE_PATH) -I$(SDL_INCLUDE_PATH)/SDL2 \
+           -I$(SDL_IMAGE_INCLUDE_PATH) -I$(SDL_IMAGE_INCLUDE_PATH)/SDL2
+
+# Linker flags
+SDL_LIBS = -L$(SDL_LIB_PATH) -L$(SDL_IMAGE_LIB_PATH) \
+           -lmingw32 -lSDL2main -lSDL2 -lSDL2_image \
+           -static-libgcc -static-libstdc++
+
+# Directories
+SRC_DIR = src
+OBJ_DIR = obj
+BIN_DIR = .
+TARGET  = $(BIN_DIR)/Game.exe
+
+# Source files
+SOURCES = $(SRC_DIR)/main.cpp \
+          $(SRC_DIR)/Game.cpp \
+          $(SRC_DIR)/TextureManager.cpp \
+          $(SRC_DIR)/GameObject.cpp \
+          $(SRC_DIR)/Map.cpp \
+          $(SRC_DIR)/Vector2D.cpp \
+          $(SRC_DIR)/Collision.cpp \
+          $(SRC_DIR)/Camera.cpp \
+          $(SRC_DIR)/EnvironmentAssets.cpp \
+          $(SRC_DIR)/Environment/Environment.cpp
+
+# Object files
+OBJECTS = $(OBJ_DIR)/main.o \
+          $(OBJ_DIR)/Game.o \
+          $(OBJ_DIR)/TextureManager.o \
+          $(OBJ_DIR)/GameObject.o \
+          $(OBJ_DIR)/Map.o \
+          $(OBJ_DIR)/Vector2D.o \
+          $(OBJ_DIR)/Collision.o \
+          $(OBJ_DIR)/Camera.o \
+          $(OBJ_DIR)/EnvironmentAssets.o \
+          $(OBJ_DIR)/Environment.o \
+          $(OBJ_DIR)/SpriteComponent.o \
+          $(OBJ_DIR)/AnimationComponent.o \
+          $(OBJ_DIR)/PositionComponent.o
+
+# Build rules
+all: $(TARGET)
+
+$(OBJ_DIR):
+	mkdir -p $(OBJ_DIR)
+
+$(TARGET): $(OBJECTS)
+	$(CXX) $(OBJECTS) -o $@ $(SDL_LIBS)
+	@echo "Build complete: $(TARGET)"
+
+# Generic rule for src/*.cpp
+$(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp | $(OBJ_DIR)
+	$(CXX) $(CXXFLAGS) -c $< -o $@
+
+# Specific rules for subdirectories
+$(OBJ_DIR)/Environment.o: $(SRC_DIR)/Environment/Environment.cpp | $(OBJ_DIR)
+	$(CXX) $(CXXFLAGS) -c $< -o $@
+
+$(OBJ_DIR)/SpriteComponent.o: $(SRC_DIR)/ECS/SpriteComponent.cpp | $(OBJ_DIR)
+	$(CXX) $(CXXFLAGS) -c $< -o $@
+
+$(OBJ_DIR)/AnimationComponent.o: $(SRC_DIR)/ECS/AnimationComponent.cpp | $(OBJ_DIR)
+	$(CXX) $(CXXFLAGS) -c $< -o $@
+
+$(OBJ_DIR)/PositionComponent.o: $(SRC_DIR)/ECS/PositionComponent.cpp | $(OBJ_DIR)
+	$(CXX) $(CXXFLAGS) -c $< -o $@
+
+# Clean rule
+clean:
+	rm -rf $(OBJ_DIR)
+	rm -f $(TARGET)
+
+rebuild: clean all
+
+.PHONY: all clean rebuild

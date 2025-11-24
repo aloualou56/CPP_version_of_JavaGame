@@ -1,7 +1,7 @@
 #ifndef PositionComponent_hpp
 #define PositionComponent_hpp
 
-#include "Componets.hpp"
+#include "ECS.hpp"
 #include "../Vector2D.hpp"
 
 class PositionComponent : public Component {

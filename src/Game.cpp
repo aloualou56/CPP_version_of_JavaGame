@@ -2,6 +2,7 @@
 #include "TextureManager.hpp"
 #include "Map.hpp"
 #include "Camera.hpp"
+#include "EnvironmentAssets.hpp"
 
 #include "ECS/ECS.hpp"
 #include "ECS/Componets.hpp"
@@ -10,6 +11,7 @@
 
 
 Map* map;
+EnvironmentAssets* environmentAssets;
 
 SDL_Renderer* Game::renderer = nullptr;
 SDL_Event Game::event;
@@ -52,6 +54,10 @@ void Game::init(const char *title, int xpos, int ypos, int width, int height, bo
 
     map = new Map();
     camera = new Camera(width, height);
+    
+    // Initialize environment assets (50x50 world, 96px tiles)
+    environmentAssets = new EnvironmentAssets(&manager, 50, 50, 96);
+    environmentAssets->generateEnvironment();
 
     //ECS implementation - Setup player with animations
     player.addComponent<PositionComponent>(2400.0f, 2400.0f);  // Start in center of world
@@ -119,6 +125,7 @@ void Game::clean() {
     SDL_DestroyRenderer(renderer);
     delete map;
     delete camera;
+    delete environmentAssets;
     SDL_Quit();
     std::cout << "Terminated successfully......." << std::endl;
 }

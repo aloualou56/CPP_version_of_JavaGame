@@ -5,6 +5,7 @@
 #include <SDL_image.h>
 #include <iostream>
 
+class Camera;
 
 class Game {
     public:
@@ -22,6 +23,7 @@ class Game {
 
       static SDL_Renderer *renderer;
       static SDL_Event event;
+      static Camera* camera;
 
     private:
       int cnt = 0;

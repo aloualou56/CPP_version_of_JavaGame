@@ -1,0 +1,36 @@
+#ifndef MouseHandler_hpp
+#define MouseHandler_hpp
+
+#include "../Game.hpp"
+#include "ECS.hpp"
+#include "Componets.hpp"
+
+class MouseHandler : public Component {
+public:
+    PositionComponent* position;
+    bool attacking = false;
+    
+    void init() override {
+        position = &entity->getComponent<PositionComponent>();
+    }
+    
+    void update() override {
+        attacking = false;
+        
+        // Check for mouse button press
+        if (Game::event.type == SDL_MOUSEBUTTONDOWN) {
+            if (Game::event.button.button == SDL_BUTTON_LEFT) {
+                attacking = true;
+            }
+        }
+        
+        // Also check for R key attack (keyboard alternative)
+        if (Game::event.type == SDL_KEYDOWN) {
+            if (Game::event.key.keysym.sym == SDLK_r) {
+                attacking = true;
+            }
+        }
+    }
+};
+
+#endif

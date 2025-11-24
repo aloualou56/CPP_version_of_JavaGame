@@ -1,6 +1,8 @@
 #ifndef Map_hpp
 #define Map_hpp
 #include "Game.hpp"
+#include "Camera.hpp"
+#include <string>
 
 class Map {
     public:
@@ -8,16 +10,24 @@ class Map {
        Map();
        ~Map();
 
-       void loadMap(int arr[20][25]);
-       void DrawMap();
+       void loadMapFromFile(const std::string& filepath);
+       void DrawMap(Camera* camera);
+       
+       bool isSolidTile(int tileType) const;
+       int getTileAt(int x, int y) const;
 
     private:
        SDL_Rect src, dest;
        SDL_Texture* dirt;
        SDL_Texture* grass;
        SDL_Texture* water;
+       SDL_Texture* stone;
+       
+       static const int MAP_WIDTH = 50;
+       static const int MAP_HEIGHT = 50;
+       static const int TILE_SIZE = 96;  // 16 * 6 scale
 
-       int map[20][25];
+       int map[MAP_HEIGHT][MAP_WIDTH];
 };
 
 

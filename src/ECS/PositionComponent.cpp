@@ -52,8 +52,9 @@ void PositionComponent::update() {
                         for (int y = 0; y < intersect.h && !hit; ++y) {
                             for (int x = 0; x < intersect.w; ++x) {
                                 // Μετατροπή pixel κόσμου σε pixel μάσκας
-                                int ox = ((intersect.x - otherRect.x) + x) / otherScale - cc.mask.offsetX;
-                                int oy = ((intersect.y - otherRect.y) + y) / otherScale - cc.mask.offsetY;
+                                // Πρώτα μετατρέπουμε σε συντεταγμένες εντός του collider, μετά σε unscaled, μετά αφαιρούμε το offset
+                                int ox = (((intersect.x - otherRect.x) + x) / otherScale) - cc.mask.offsetX;
+                                int oy = (((intersect.y - otherRect.y) + y) / otherScale) - cc.mask.offsetY;
                                 int px = (((intersect.x - playerCollider.x) + x) / playerScale) - (playerCC ? playerCC->mask.offsetX : 0);
                                 int py = (((intersect.y - playerCollider.y) + y) / playerScale) - (playerCC ? playerCC->mask.offsetY : 0);
                                 bool otherSolid = cc.mask.isSolid(ox, oy);

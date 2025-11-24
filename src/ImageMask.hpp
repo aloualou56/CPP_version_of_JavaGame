@@ -8,6 +8,10 @@
 
 class ImageMask {
 public:
+    // Κατώφλι alpha για εντοπισμό στερεών pixels (200 = ~78% αδιαφάνεια)
+    // Pixels με alpha > COLLISION_ALPHA_THRESHOLD θεωρούνται στερεά για σύγκρουση
+    static constexpr int COLLISION_ALPHA_THRESHOLD = 200;
+    
     int width = 0;
     int height = 0;
     // Μετατοπίσεις της μάσκας σε σχέση με την αρχική εικόνα (περικοπή από πάνω-αριστερά)
@@ -39,7 +43,7 @@ public:
                 Uint32 px = *reinterpret_cast<Uint32*>(pixels + y * pitch + x * 4);
                 Uint8 r, g, b, a;
                 SDL_GetRGBA(px, fmt, &r, &g, &b, &a);
-                if (a > 128) {
+                if (a > COLLISION_ALPHA_THRESHOLD) {  // Χρησιμοποιεί υψηλότερο κατώφλι για να αγνοεί ημιδιαφανή pixels
                     if (x < minX) minX = x;
                     if (y < minY) minY = y;
                     if (x > maxX) maxX = x;
@@ -71,7 +75,7 @@ public:
                 Uint32 px = *reinterpret_cast<Uint32*>(pixels + (y + minY) * pitch + (x + minX) * 4);
                 Uint8 r, g, b, a;
                 SDL_GetRGBA(px, fmt, &r, &g, &b, &a);
-                mask[y][x] = (a > 128);
+                mask[y][x] = (a > COLLISION_ALPHA_THRESHOLD);  // Χρησιμοποιεί το ίδιο κατώφλι με την εύρεση περιγράμματος
             }
         }
 

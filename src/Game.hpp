@@ -4,6 +4,7 @@
 #include <SDL.h>
 #include <SDL_image.h>
 #include <iostream>
+#include "ECS/ECS.hpp"
 
 class Camera;
 class Map;
@@ -26,6 +27,10 @@ class Game {
       static SDL_Event event;
       static Camera* camera;
       static Map* map;
+      // Εκθέτει τον παγκόσμιο manager που ορίζεται στο `Game.cpp`
+      static Manager* managerPtr;
+      // Παγκόσμιος διακόπτης debug για εμφάνιση/απόκρυψη οπτικών/καταγραφών debug
+      static bool debugMode;
 
     private:
       int cnt = 0;

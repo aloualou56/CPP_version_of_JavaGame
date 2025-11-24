@@ -1,15 +1,49 @@
-# Compiler and flags
-CXX = g++
-CXXFLAGS = -std=c++11 -Wall -Wextra -g
-SDL_CFLAGS = $(shell sdl2-config --cflags)
-SDL_LIBS = $(shell sdl2-config --libs) -lSDL2_image
+# ==========================================
+# 1. COMPILER & PATHS CONFIGURATION
+# ==========================================
+CXX ?= g++
 
-# Directories
+# You can override the compiler by setting the CXX environment variable, e.g.
+#   set CXX=C:\msys64\mingw64\bin\g++.exe
+# This keeps the default simple (`g++`) but allows tools or user to point
+# to an absolute compiler path when needed.
+
+# --- OPTION A: Standard MSYS2 (UCRT64) ---
+# Most common if you followed modern tutorials
+SDL_INCLUDE_PATH = C:/SDL2/include
+SDL_LIB_PATH     = C:/SDL2/lib/x64
+
+# --- OPTION B: Old MSYS2 (MINGW64) ---
+# Uncomment these two lines if Option A fails
+# SDL_INCLUDE_PATH = C:/msys64/mingw64/include
+# SDL_LIB_PATH     = C:/msys64/mingw64/lib
+
+# --- OPTION C: Custom Install (e.g. C:/SDL2_Libs) ---
+# SDL_INCLUDE_PATH = C:/SDL2_Libs/SDL2-2.30.9/x86_64-w64-mingw32/include
+# SDL_LIB_PATH     = C:/SDL2_Libs/SDL2-2.30.9/x86_64-w64-mingw32/lib
+
+
+# ==========================================
+# 2. FLAGS & LIBRARIES
+# ==========================================
+# -Dmain=SDL_main is required for Windows
+# -I points to the include folder so <SDL2/SDL.h> works
+CXXFLAGS = -std=c++17 -Wall -Wextra -g -Dmain=SDL_main -I$(SDL_INCLUDE_PATH) -I$(SDL_INCLUDE_PATH)/SDL2
+
+# Linker flags: Must include the library path (-L) and specific libraries (-l)
+# Order matters: mingw32 -> SDL2main -> SDL2 -> SDL2_image
+SDL_LIBS = -L$(SDL_LIB_PATH) -lmingw32 -lSDL2main -lSDL2 -lSDL2_image
+
+
+# ==========================================
+# 3. DIRECTORIES & FILES
+# ==========================================
 SRC_DIR = src
 OBJ_DIR = obj
 BIN_DIR = .
+TARGET  = $(BIN_DIR)/Game.exe
 
-# Source files
+# Source files list
 SOURCES = $(SRC_DIR)/main.cpp \
           $(SRC_DIR)/Game.cpp \
           $(SRC_DIR)/TextureManager.cpp \
@@ -21,7 +55,7 @@ SOURCES = $(SRC_DIR)/main.cpp \
           $(SRC_DIR)/EnvironmentAssets.cpp \
           $(SRC_DIR)/Environment/Environment.cpp
 
-# Object files
+# Object files list (Flattened structure)
 OBJECTS = $(OBJ_DIR)/main.o \
           $(OBJ_DIR)/Game.o \
           $(OBJ_DIR)/TextureManager.o \
@@ -36,40 +70,45 @@ OBJECTS = $(OBJ_DIR)/main.o \
           $(OBJ_DIR)/AnimationComponent.o \
           $(OBJ_DIR)/PositionComponent.o
 
-# Target executable
-TARGET = $(BIN_DIR)/Game
+
+# ==========================================
+# 4. BUILD RULES
+# ==========================================
 
 # Default target
 all: $(TARGET)
 
-# Create object directory if it doesn't exist
+# Create object directory (Windows command)
 $(OBJ_DIR):
-	mkdir -p $(OBJ_DIR)
+	@if not exist $(OBJ_DIR) mkdir $(OBJ_DIR)
 
-# Link
+# Link the executable
 $(TARGET): $(OBJECTS)
 	$(CXX) $(OBJECTS) -o $@ $(SDL_LIBS)
 
-# Compile
-$(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp | $(OBJ_DIR)
-	$(CXX) $(CXXFLAGS) $(SDL_CFLAGS) -I$(SRC_DIR) -c $< -o $@
+# --- Compilation Rules ---
 
-# Special rules for subdirectories
+# Generic rule for src/*.cpp
+$(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp | $(OBJ_DIR)
+	$(CXX) $(CXXFLAGS) -c $< -o $@
+
+# Specific rules for subdirectories (Flattening to obj/ folder)
 $(OBJ_DIR)/Environment.o: $(SRC_DIR)/Environment/Environment.cpp | $(OBJ_DIR)
-	$(CXX) $(CXXFLAGS) $(SDL_CFLAGS) -I$(SRC_DIR) -c $< -o $@
+	$(CXX) $(CXXFLAGS) -c $< -o $@
 
 $(OBJ_DIR)/SpriteComponent.o: $(SRC_DIR)/ECS/SpriteComponent.cpp | $(OBJ_DIR)
-	$(CXX) $(CXXFLAGS) $(SDL_CFLAGS) -I$(SRC_DIR) -c $< -o $@
+	$(CXX) $(CXXFLAGS) -c $< -o $@
 
 $(OBJ_DIR)/AnimationComponent.o: $(SRC_DIR)/ECS/AnimationComponent.cpp | $(OBJ_DIR)
-	$(CXX) $(CXXFLAGS) $(SDL_CFLAGS) -I$(SRC_DIR) -c $< -o $@
+	$(CXX) $(CXXFLAGS) -c $< -o $@
 
 $(OBJ_DIR)/PositionComponent.o: $(SRC_DIR)/ECS/PositionComponent.cpp | $(OBJ_DIR)
-	$(CXX) $(CXXFLAGS) $(SDL_CFLAGS) -I$(SRC_DIR) -c $< -o $@
+	$(CXX) $(CXXFLAGS) -c $< -o $@
 
-# Clean
+# --- Clean Rule (Windows Native) ---
 clean:
-	rm -rf $(OBJ_DIR) $(TARGET)
+	@if exist $(OBJ_DIR) rmdir /s /q $(OBJ_DIR)
+	@if exist $(TARGET) del /f /q $(TARGET)
 
 # Rebuild
 rebuild: clean all

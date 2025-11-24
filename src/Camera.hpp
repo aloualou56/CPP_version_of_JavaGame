@@ -11,14 +11,14 @@ public:
 
     void update(Vector2D playerPosition);
     
-    // Get camera position (top-left corner of viewport)
+    // Επιστρέφει τη θέση της κάμερας (πάνω-αριστερή γωνία του view)
     Vector2D getPosition() const;
     
-    // Convert world coordinates to screen coordinates
+    // Μετατρέπει συντεταγμένες κόσμου σε συντεταγμένες οθόνης
     int worldToScreenX(float worldX) const;
     int worldToScreenY(float worldY) const;
     
-    // Get camera bounds
+    // Επιστρέφει τα όρια της κάμερας
     int getX() const { return static_cast<int>(position.x); }
     int getY() const { return static_cast<int>(position.y); }
     int getWidth() const { return width; }

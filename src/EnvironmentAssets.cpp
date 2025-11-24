@@ -3,7 +3,7 @@
 
 EnvironmentAssets::EnvironmentAssets(Manager* mgr, int worldW, int worldH, int tileS) 
     : manager(mgr), worldWidth(worldW), worldHeight(worldH), tileSize(tileS) {
-    // Seed random number generator
+    // Σπείρει (seed) τον γεννήτορα τυχαίων αριθμών
     rng.seed(static_cast<unsigned int>(time(nullptr)));
 }
 
@@ -21,8 +21,8 @@ void EnvironmentAssets::generateEnvironment() {
 }
 
 void EnvironmentAssets::placeGrassDecorations() {
-    // Place random grass decorations across the map
-    // About 100 grass decorations scattered around
+    // Τοποθετεί τυχαίες διακοσμήσεις χόρτου στον χάρτη
+    // Περίπου 100 διακοσμήσεις χόρτου τυχαία κατανεμημένες
     for (int i = 0; i < 100; i++) {
         float x = getRandomX();
         float y = getRandomY();
@@ -33,8 +33,8 @@ void EnvironmentAssets::placeGrassDecorations() {
 }
 
 void EnvironmentAssets::placeBushes() {
-    // Place random bushes (thamnos tonia)
-    // About 30 bushes
+    // Τοποθετεί τυχαίους θάμνους (thamnos tonia)
+    // Περίπου 30 θάμνοι
     for (int i = 0; i < 30; i++) {
         float x = getRandomX();
         float y = getRandomY();
@@ -44,8 +44,8 @@ void EnvironmentAssets::placeBushes() {
 }
 
 void EnvironmentAssets::placeRocks() {
-    // Place random rocks
-    // About 20 rocks
+    // Τοποθετεί τυχαίους βράχους
+    // Περίπου 20 βράχοι
     for (int i = 0; i < 20; i++) {
         float x = getRandomX();
         float y = getRandomY();

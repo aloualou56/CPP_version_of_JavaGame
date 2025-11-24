@@ -21,6 +21,11 @@ Manager manager;
 auto& player(manager.addEntity());
 auto& wall(manager.addEntity());
 
+// Ορίζει στατική μεταβλητή δείκτη στον manager για εξωτερική πρόσβαση
+Manager* Game::managerPtr = nullptr;
+// Διακόπτης debug αρχικά απενεργοποιημένος
+bool Game::debugMode = false;
+
 Game::Game() {
 
 }
@@ -54,13 +59,15 @@ void Game::init(const char *title, int xpos, int ypos, int width, int height, bo
 
     map = new Map();
     camera = new Camera(width, height);
+    // Εκθέτει τον manager σε άλλα συστήματα
+    Game::managerPtr = &manager;
     
-    // Initialize environment assets (50x50 world, 96px tiles)
+    // Αρχικοποιεί τα περιβαλλοντικά assets (κόσμος 50x50, πλακίδια 96px)
     environmentAssets = new EnvironmentAssets(&manager, 50, 50, 96);
     environmentAssets->generateEnvironment();
 
-    //ECS implementation - Setup player with animations
-    player.addComponent<PositionComponent>(2400.0f, 2400.0f, 48, 48, 2);  // Start in center of world, scale 2x
+    // Υλοποίηση ECS - Δημιουργία παίκτη με animations
+    player.addComponent<PositionComponent>(2400.0f, 2400.0f, 48, 48, 3);  // Ξεκινά στο κέντρο του κόσμου, κλίμακα 3x (μεγαλύτερος)
 
     AnimationComponent& playerAnim = player.addComponent<AnimationComponent>();
 
@@ -84,6 +91,14 @@ void Game::init(const char *title, int xpos, int ypos, int width, int height, bo
 
     playerAnim.addAnimation("Idle", idleAnim, 200);
     playerAnim.addAnimation("Walk", walkAnim, 100);
+    // Animation επίθεσης / μάχης (μία εκτέλεση)
+    std::vector<std::string> attackAnim = {
+        "sprites/characters/cutted-character/fight_sprites/fight_1.png",
+        "sprites/characters/cutted-character/fight_sprites/fight_2.png",
+        "sprites/characters/cutted-character/fight_sprites/fight_3.png",
+        "sprites/characters/cutted-character/fight_sprites/fight_4.png"
+    };
+    playerAnim.addAnimation("Attack", attackAnim, 80);
     playerAnim.play("Idle");
 
     player.addComponent<Keyboard>();
@@ -97,27 +112,36 @@ void Game::init(const char *title, int xpos, int ypos, int width, int height, bo
 }
 
 void Game::handleEvents() {
-
-    
-    SDL_PollEvent(&event);
-    switch (event.type)
-    {
-    case SDL_QUIT:
-        isRunning = false;
-        break;
-    
-    default:
-        break;
+    // Επεξεργασία όλων των εκκρεμών SDL γεγονότων; χειρισμός εξόδου και keydown για επίθεση
+    while (SDL_PollEvent(&event)) {
+        switch (event.type) {
+            case SDL_QUIT:
+                isRunning = false;
+                break;
+            case SDL_KEYDOWN:
+                // Εναλλαγή overlay/logging debug με το πλήκτρο Tab
+                if (event.key.keysym.sym == SDLK_TAB && event.key.repeat == 0) {
+                    Game::debugMode = !Game::debugMode;
+                    std::cout << "Debug mode: " << (Game::debugMode ? "ON" : "OFF") << std::endl;
+                }
+                // Εκκίνηση μιας φοράς επίθεσης όταν πατηθεί R (παραβλέπει επαναλήψεις)
+                if (event.key.keysym.sym == SDLK_r && event.key.repeat == 0) {
+                    if (player.hasComponent<AnimationComponent>()) {
+                        player.getComponent<AnimationComponent>().play("Attack", false);
+                    }
+                }
+                break;
+            default:
+                break;
+        }
     }
-
 }
 
 void Game::update() {
-
     manager.refresh();
     manager.update();
     
-    // Update camera to follow player
+    // Ενημέρωση της κάμερας ώστε να ακολουθεί τον παίκτη
     if (player.hasComponent<PositionComponent>()) {
         Vector2D playerPos = player.getComponent<PositionComponent>().position;
         camera->update(playerPos);
@@ -129,19 +153,7 @@ void Game::update() {
         playerPos.velocity.y *= -1;
         std::cout << "wall got hit!" << std::endl;
     }
-                       
-  
-}
 
-void Game::render() {
-
-    SDL_RenderClear(renderer);
-    //whattorender
-    map->DrawMap(camera);
-    manager.draw();
-    //whattorender
-    SDL_RenderPresent(renderer);
-    
 }
 
 void Game::clean() {
@@ -153,4 +165,15 @@ void Game::clean() {
     delete environmentAssets;
     SDL_Quit();
     std::cout << "Terminated successfully......." << std::endl;
+}
+
+void Game::render() {
+
+    SDL_RenderClear(renderer);
+    // Τι να σχεδιαστεί
+    map->DrawMap(camera);
+    manager.draw();
+    // Τι να σχεδιαστεί
+    SDL_RenderPresent(renderer);
+    
 }

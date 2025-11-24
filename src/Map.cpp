@@ -5,26 +5,26 @@
 #include <iostream>
 
 Map::Map() {
-    // Load textures for different tile types
+    // Φορτώνει textures για διαφορετικούς τύπους πλακιδίων
     grass = TextureManager::LoadTexture("sprites/tilesets/16x16 set/grass1.png");
     dirt = TextureManager::LoadTexture("sprites/tilesets/16x16 set/dirt1.png");
     water = TextureManager::LoadTexture("sprites/tilesets/16x16 set/grass2.png");
     stone = TextureManager::LoadTexture("sprites/tilesets/16x16 set/dirt2.png");
 
-    // Initialize map array
+    // Αρχικοποιεί τον πίνακα του χάρτη
     for(int i = 0; i < MAP_HEIGHT; i++) {
         for(int j = 0; j < MAP_WIDTH; j++) {
             map[i][j] = 0;
         }
     }
 
-    // Try to load map from file
+    // Προσπαθεί να φορτώσει χάρτη από αρχείο
     loadMapFromFile("maps/map01.txt");
 
     src.x = src.y = 0;
-    src.w = src.h = 16;  // Source tile is 16x16
+    src.w = src.h = 16;  // Πηγή πλακιδίου 16x16
     
-    dest.w = dest.h = TILE_SIZE;  // Destination is scaled to 96x96
+    dest.w = dest.h = TILE_SIZE;  // Προορισμός κλιμακωμένος σε 96x96
 }
 
 Map::~Map() {
@@ -64,28 +64,28 @@ void Map::loadMapFromFile(const std::string& filepath) {
 void Map::DrawMap(Camera* camera) {
     int type = 0;
     
-    // Calculate which tiles are visible
+    // Υπολογίζει ποια πλακίδια είναι ορατά
     int startCol = camera->getX() / TILE_SIZE;
     int endCol = (camera->getX() + camera->getWidth()) / TILE_SIZE + 1;
     int startRow = camera->getY() / TILE_SIZE;
     int endRow = (camera->getY() + camera->getHeight()) / TILE_SIZE + 1;
     
-    // Clamp to map bounds
+    // Περιορίζει στα όρια του χάρτη
     if (startCol < 0) startCol = 0;
     if (endCol > MAP_WIDTH) endCol = MAP_WIDTH;
     if (startRow < 0) startRow = 0;
     if (endRow > MAP_HEIGHT) endRow = MAP_HEIGHT;
     
-    // Only draw visible tiles
+    // Σχεδιάζει μόνο τα ορατά πλακίδια
     for(int row = startRow; row < endRow; row++) {
         for(int column = startCol; column < endCol; column++) {
             type = map[row][column];
 
-            // Calculate world position
+            // Υπολογίζει θέση στον κόσμο
             int worldX = column * TILE_SIZE;
             int worldY = row * TILE_SIZE;
             
-            // Convert to screen position
+            // Μετατρέπει σε θέση οθόνης
             dest.x = camera->worldToScreenX(worldX);
             dest.y = camera->worldToScreenY(worldY);
 
@@ -111,7 +111,7 @@ void Map::DrawMap(Camera* camera) {
 }
 
 bool Map::isSolidTile(int tileType) const {
-    // Tiles that block movement
+    // Πλακίδια που εμποδίζουν την κίνηση
     return (tileType == 1 || tileType == 3);
 }
 
@@ -120,7 +120,7 @@ int Map::getTileAt(int x, int y) const {
     int row = y / TILE_SIZE;
     
     if (row < 0 || row >= MAP_HEIGHT || col < 0 || col >= MAP_WIDTH) {
-        return -1;  // Out of bounds
+        return -1;  // Εξωτερικό των ορίων
     }
     
     return map[row][col];

@@ -25,7 +25,7 @@ class Map {
        
        static const int MAP_WIDTH = 50;
        static const int MAP_HEIGHT = 50;
-       static const int TILE_SIZE = 96;  // 16 * 6 scale
+      static const int TILE_SIZE = 96;  // 16 * 6 κλίμακα
 
        int map[MAP_HEIGHT][MAP_WIDTH];
 };

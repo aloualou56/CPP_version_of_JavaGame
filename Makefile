@@ -47,6 +47,7 @@ TARGET  = $(BIN_DIR)/Game.exe
 SOURCES = $(SRC_DIR)/main.cpp \
           $(SRC_DIR)/Game.cpp \
           $(SRC_DIR)/TextureManager.cpp \
+          $(SRC_DIR)/HUD_new.cpp \
           $(SRC_DIR)/GameObject.cpp \
           $(SRC_DIR)/Map.cpp \
           $(SRC_DIR)/Vector2D.cpp \
@@ -59,6 +60,7 @@ SOURCES = $(SRC_DIR)/main.cpp \
 OBJECTS = $(OBJ_DIR)/main.o \
           $(OBJ_DIR)/Game.o \
           $(OBJ_DIR)/TextureManager.o \
+          $(OBJ_DIR)/HUD_new.o \
           $(OBJ_DIR)/GameObject.o \
           $(OBJ_DIR)/Map.o \
           $(OBJ_DIR)/Vector2D.o \

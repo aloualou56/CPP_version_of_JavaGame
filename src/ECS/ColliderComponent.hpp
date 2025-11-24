@@ -56,6 +56,8 @@ class ColliderComponent : public Component {
       if (!loaded) {
           if (tag == "rock") {
              mask.loadFromPNG("sprites/objects/rock.png");
+          } else if (tag == "bush") {
+             mask.loadFromPNG("sprites/objects/thamnos_tonia.png");
           } else if (tag == "player") {
              mask.loadFromPNG("sprites/characters/cutted-character/standing_sprites/standing_1.png");
           }

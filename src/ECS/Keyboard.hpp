@@ -3,7 +3,7 @@
 
 #include "../Game.hpp"
 #include "ECS.hpp"
-#include "Componets.hpp"
+#include "PositionComponent.hpp"
 
 class Keyboard : public Component {
     public:

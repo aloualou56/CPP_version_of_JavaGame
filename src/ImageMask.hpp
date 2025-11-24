@@ -39,7 +39,7 @@ public:
                 Uint32 px = *reinterpret_cast<Uint32*>(pixels + y * pitch + x * 4);
                 Uint8 r, g, b, a;
                 SDL_GetRGBA(px, fmt, &r, &g, &b, &a);
-                if (a > 128) {
+                if (a > 200) {  // Χρησιμοποιεί υψηλότερο κατώφλι για να αγνοεί ημιδιαφανή pixels
                     if (x < minX) minX = x;
                     if (y < minY) minY = y;
                     if (x > maxX) maxX = x;
@@ -71,7 +71,7 @@ public:
                 Uint32 px = *reinterpret_cast<Uint32*>(pixels + (y + minY) * pitch + (x + minX) * 4);
                 Uint8 r, g, b, a;
                 SDL_GetRGBA(px, fmt, &r, &g, &b, &a);
-                mask[y][x] = (a > 128);
+                mask[y][x] = (a > 200);  // Χρησιμοποιεί το ίδιο κατώφλι με την εύρεση περιγράμματος
             }
         }
 

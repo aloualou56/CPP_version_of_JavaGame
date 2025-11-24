@@ -16,7 +16,7 @@ class PositionComponent : public Component {
       int width = 48;
       int scale = 1;
 
-      int speed = 3;
+      int speed = 4;
 
       PositionComponent() {
         position.Zero();

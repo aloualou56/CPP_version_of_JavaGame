@@ -3,6 +3,7 @@
 #include "Map.hpp"
 #include "Camera.hpp"
 #include "EnvironmentAssets.hpp"
+#include "HUD.hpp"
 
 #include "ECS/ECS.hpp"
 #include "ECS/Componets.hpp"
@@ -59,6 +60,9 @@ void Game::init(const char *title, int xpos, int ypos, int width, int height, bo
 
     map = new Map();
     camera = new Camera(width, height);
+    // Create HUD
+    this->hud = new HUD();
+    // HUD will be initialised after player creation so it can be bound to the HealthComponent
     // Εκθέτει τον manager σε άλλα συστήματα
     Game::managerPtr = &manager;
     
@@ -104,6 +108,12 @@ void Game::init(const char *title, int xpos, int ypos, int width, int height, bo
     player.addComponent<Keyboard>();
     player.addComponent<MouseHandler>();
     player.addComponent<ColliderComponent>("player");
+    // Add health via ECS and bind HUD to it
+    const int playerMax = 5; // default player max health
+    player.addComponent<HealthComponent>(playerMax);
+    // Init HUD now that health component exists
+    this->hud->init(playerMax);
+    this->hud->bindHealthComponent(&player.getComponent<HealthComponent>());
 
     wall.addComponent<PositionComponent>(600.0f, 600.0f, 48, 48, 2);
     wall.addComponent<SpriteComponent>("sprites/tilesets/16x16 set/dirt1.png");
@@ -123,6 +133,10 @@ void Game::handleEvents() {
                 if (event.key.keysym.sym == SDLK_TAB && event.key.repeat == 0) {
                     Game::debugMode = !Game::debugMode;
                     std::cout << "Debug mode: " << (Game::debugMode ? "ON" : "OFF") << std::endl;
+                }
+                // Close game with Escape key
+                if (event.key.keysym.sym == SDLK_ESCAPE && event.key.repeat == 0) {
+                    isRunning = false;
                 }
                 // Εκκίνηση μιας φοράς επίθεσης όταν πατηθεί R (παραβλέπει επαναλήψεις)
                 if (event.key.keysym.sym == SDLK_r && event.key.repeat == 0) {
@@ -151,13 +165,24 @@ void Game::update() {
         auto& playerPos = player.getComponent<PositionComponent>();
         playerPos.velocity.x *= -1;
         playerPos.velocity.y *= -1;
-        std::cout << "wall got hit!" << std::endl;
+        // Apply damage with a small cooldown to avoid draining health instantly
+        unsigned int now = SDL_GetTicks();
+        if (now - this->lastDamageTime > 400) {
+            this->lastDamageTime = now;
+            if (player.hasComponent<HealthComponent>()) {
+                auto &hc = player.getComponent<HealthComponent>();
+                if (hc.getCurrent() > 0.0f) {
+                    hc.takeDamage(1.0f); // subtract one full heart
+                    std::cout << "wall got hit! Player health: " << hc.getCurrent() << std::endl;
+                }
+            }
+        }
     }
 
 }
 
 void Game::clean() {
-    
+    if (this->hud) { delete this->hud; this->hud = nullptr; }
     SDL_DestroyWindow(window);
     SDL_DestroyRenderer(renderer);
     delete map;
@@ -173,6 +198,8 @@ void Game::render() {
     // Τι να σχεδιαστεί
     map->DrawMap(camera);
     manager.draw();
+    // Draw HUD (hearts in corner)
+    if (this->hud) this->hud->render();
     // Τι να σχεδιαστεί
     SDL_RenderPresent(renderer);
     

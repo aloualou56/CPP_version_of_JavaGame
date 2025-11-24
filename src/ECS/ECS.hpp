@@ -50,8 +50,8 @@ class Entity {
       bool active = true;
       std::vector<std::unique_ptr<Component>> components;
 
-      ComponentArray ComponentArray;
-      ComponentBitSet ComponentBitSet;
+      ComponentArray componentArray;
+      ComponentBitSet componentBitSet;
 
     public:
       void update() {
@@ -67,7 +67,7 @@ class Entity {
 
       template <typename T> bool hasComponent() const {
         ComponentID componentID = getComponentTypeID<T>(); //extra code apo chatgpt to eftiaxe to themataki mas
-        return ComponentBitSet[componentID];
+        return componentBitSet[componentID];
       }
 
       template <typename T, typename... TArgs>
@@ -78,8 +78,8 @@ class Entity {
         std::unique_ptr<Component> uPtr{ c };
         components.emplace_back(std::move(uPtr));
 
-        ComponentArray[getComponentTypeID<T>()] = c;
-        ComponentBitSet[getComponentTypeID<T>()] = true;
+        componentArray[getComponentTypeID<T>()] = c;
+        componentBitSet[getComponentTypeID<T>()] = true;
 
         c->init();
         return *c;
@@ -88,7 +88,7 @@ class Entity {
 
       template<typename T> T& getComponent() const {
 
-        auto ptr(ComponentArray[getComponentTypeID<T>()]);
+        auto ptr(componentArray[getComponentTypeID<T>()]);
         return *static_cast<T*>(ptr);
       }
 };

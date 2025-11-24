@@ -1,7 +1,7 @@
 #include <SDL.h>
 #include "Game.hpp"
 
-#define FPS 60
+#define FPS 30
 
 Game *game = nullptr;
 
@@ -14,7 +14,7 @@ int main(int argc, char* argv[]) {
     
     game = new Game();
 
-    game->init("prototype", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 800, 600, false);
+    game->init("prototype", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 768, 576, false);
 
     while(game->running()) {
 

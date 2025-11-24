@@ -1,10 +1,12 @@
 #include "AnimationComponent.hpp"
 #include "PositionComponent.hpp"
 #include "../TextureManager.hpp"
+#include "../Game.hpp"
+#include "../Camera.hpp"
 #include "ECS.hpp"
 
 AnimationComponent::~AnimationComponent() {
-    if (spriteSheet) {
+    if (spriteSheet && ownsTexture) {
         SDL_DestroyTexture(spriteSheet);
     }
 }
@@ -31,8 +33,13 @@ void AnimationComponent::play(const std::string& animName) {
     }
 }
 
-void AnimationComponent::setTexture(SDL_Texture* texture) {
+void AnimationComponent::setTexture(SDL_Texture* texture, bool takeOwnership) {
+    // Clean up old texture if we own it
+    if (spriteSheet && ownsTexture) {
+        SDL_DestroyTexture(spriteSheet);
+    }
     spriteSheet = texture;
+    ownsTexture = takeOwnership;
 }
 
 void AnimationComponent::update() {
@@ -50,8 +57,14 @@ void AnimationComponent::update() {
     srcRect.x = srcRect.w * animIndex;
     srcRect.y = 0;
     
-    destRect.x = static_cast<int>(position->position.x);
-    destRect.y = static_cast<int>(position->position.y);
+    // Use camera coordinates like SpriteComponent
+    if (Game::camera) {
+        destRect.x = Game::camera->worldToScreenX(position->position.x);
+        destRect.y = Game::camera->worldToScreenY(position->position.y);
+    } else {
+        destRect.x = static_cast<int>(position->position.x);
+        destRect.y = static_cast<int>(position->position.y);
+    }
     destRect.w = position->width * position->scale;
     destRect.h = position->height * position->scale;
 }

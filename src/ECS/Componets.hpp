@@ -7,5 +7,6 @@
 #include "ColliderComponent.hpp"
 #include "AnimationComponent.hpp"
 #include "MouseHandler.hpp"
+#include "HealthComponent.hpp"
 
 #endif

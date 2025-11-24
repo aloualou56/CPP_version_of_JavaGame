@@ -6,6 +6,8 @@
 #include <iostream>
 #include "ECS/ECS.hpp"
 
+class HUD;
+
 class Camera;
 class Map;
 
@@ -36,6 +38,9 @@ class Game {
       int cnt = 0;
       bool isRunning;
       SDL_Window *window;
+      // HUD and health are managed via ECS `HealthComponent` now
+      HUD* hud = nullptr;
+      unsigned int lastDamageTime = 0; // ms
       
 };
 

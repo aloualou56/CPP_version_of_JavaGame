@@ -3,6 +3,7 @@
 
 #include "Componets.hpp"
 #include "SDL.h"
+#include "../Camera.hpp"
 
 
 class SpriteComponent : public Component {
@@ -41,8 +42,14 @@ class SpriteComponent : public Component {
 
       void update() override {
 
-        destRect.x = static_cast<int>(position->position.x);
-        destRect.y = static_cast<int>(position->position.y);
+        // Convert world position to screen position using camera
+        if (Game::camera) {
+            destRect.x = Game::camera->worldToScreenX(position->position.x);
+            destRect.y = Game::camera->worldToScreenY(position->position.y);
+        } else {
+            destRect.x = static_cast<int>(position->position.x);
+            destRect.y = static_cast<int>(position->position.y);
+        }
         destRect.w = position->width * position->scale;
         destRect.h = position->height * position->scale;
 

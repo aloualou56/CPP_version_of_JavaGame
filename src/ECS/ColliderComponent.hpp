@@ -3,7 +3,8 @@
 
 #include <string>
 #include "SDL.h"
-#include "Componets.hpp"
+#include "ECS.hpp"
+#include "PositionComponent.hpp"
 
 class ColliderComponent : public Component {
     public:

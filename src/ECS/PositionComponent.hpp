@@ -1,7 +1,7 @@
 #ifndef PositionComponent_hpp
 #define PositionComponent_hpp
 
-#include "Componets.hpp"
+#include "ECS.hpp"
 #include "../Vector2D.hpp"
 
 class PositionComponent : public Component {
@@ -16,14 +16,16 @@ class PositionComponent : public Component {
       int width = 48;
       int scale = 1;
 
-      int speed = 3;
+      int speed = 4;
 
       PositionComponent() {
         position.Zero();
       }
 
       PositionComponent(float x, float y) {
-         position.Zero();
+         position.x = x;
+         position.y = y;
+         velocity.Zero();
       }
 
       PositionComponent(int sc) {
@@ -43,14 +45,11 @@ class PositionComponent : public Component {
         velocity.Zero();
       }
 
-      void update() override {
-        position.x += velocity.x * speed;
-        position.y += velocity.y * speed;
-     
-      }
+      void update() override;
 
       void setPos(int x, int y) {
-     
+        position.x = x;
+        position.y = y;
       }
 };
 

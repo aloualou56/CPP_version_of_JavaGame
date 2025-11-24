@@ -1,0 +1,19 @@
+# Build artifacts
+obj/
+*.o
+*.exe
+Game
+
+# IDE files
+.vscode/
+.vs/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# DLL files (keep the ones in repo)
+# SDL2.dll
+# SDL2_image.dll
+# libpng.dll
+# zlib1.dll

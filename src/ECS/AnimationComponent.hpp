@@ -34,6 +34,7 @@ private:
     
     std::string currentAnimation = "idle";
     Uint32 lastFrameTime = 0;
+    bool ownsTexture = false;  // Track if we own the texture
     
 public:
     bool animated = true;
@@ -44,7 +45,7 @@ public:
     void init() override;
     void addAnimation(const std::string& name, int index, int frames, int speed);
     void play(const std::string& animName);
-    void setTexture(SDL_Texture* texture);
+    void setTexture(SDL_Texture* texture, bool takeOwnership = false);
     void update() override;
     void draw() override;
 };

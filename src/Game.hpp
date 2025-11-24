@@ -6,6 +6,7 @@
 #include <iostream>
 
 class Camera;
+class Map;
 
 class Game {
     public:
@@ -24,6 +25,7 @@ class Game {
       static SDL_Renderer *renderer;
       static SDL_Event event;
       static Camera* camera;
+      static Map* map;
 
     private:
       int cnt = 0;

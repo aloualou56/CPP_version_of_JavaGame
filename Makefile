@@ -16,7 +16,8 @@ SOURCES = $(SRC_DIR)/main.cpp \
           $(SRC_DIR)/GameObject.cpp \
           $(SRC_DIR)/Map.cpp \
           $(SRC_DIR)/Vector2D.cpp \
-          $(SRC_DIR)/Collision.cpp
+          $(SRC_DIR)/Collision.cpp \
+          $(SRC_DIR)/Camera.cpp
 
 # Object files
 OBJECTS = $(SOURCES:$(SRC_DIR)/%.cpp=$(OBJ_DIR)/%.o)

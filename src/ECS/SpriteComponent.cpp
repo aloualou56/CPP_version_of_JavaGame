@@ -16,6 +16,7 @@ SpriteComponent::~SpriteComponent() {
 
 void SpriteComponent::setTex(const char* path) {
     texture = TextureManager::LoadTexture(path);
+    texturePath = path;
 }
 
 void SpriteComponent::init() {
@@ -27,7 +28,7 @@ void SpriteComponent::init() {
 }
 
 void SpriteComponent::update() {
-    // Convert world position to screen position using camera
+    // Μετατρέπει τη θέση από κόσμο σε θέση οθόνης χρησιμοποιώντας την camera
     if (Game::camera) {
         destRect.x = Game::camera->worldToScreenX(position->position.x);
         destRect.y = Game::camera->worldToScreenY(position->position.y);

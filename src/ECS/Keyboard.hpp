@@ -22,57 +22,40 @@ class Keyboard : public Component {
       }
 
       void update() override {
-        if(Game::event.type == SDL_KEYDOWN) {
-            switch (Game::event.key.keysym.sym) {
-                case SDLK_w:
-                 position->velocity.y = -1;
-                 if (animation) animation->play("Walk");
-                 break;
-
-                case SDLK_a:
-                 position->velocity.x = -1;
-                 if (animation) animation->play("Walk");
-                 break;
-
-                case SDLK_d:
-                 position->velocity.x = 1;
-                 if (animation) animation->play("Walk");
-                 break;
-
-                case SDLK_s:
-                 position->velocity.y = 1;
-                 if (animation) animation->play("Walk");
-                 break;
-                
-                default:
-                 break;
-            }
-
+        // Use continuous keyboard state checking instead of discrete events
+        const Uint8* keyState = SDL_GetKeyboardState(NULL);
+        
+        // Reset velocity every frame
+        position->velocity.x = 0;
+        position->velocity.y = 0;
+        
+        // Track if any movement is happening
+        bool isMoving = false;
+        
+        // Check all movement keys and set velocity
+        if (keyState[SDL_SCANCODE_W]) {
+            position->velocity.y = -1;
+            isMoving = true;
         }
-        if(Game::event.type == SDL_KEYUP) {
-            switch (Game::event.key.keysym.sym) {
-                case SDLK_w:
-                 position->velocity.y = 0;
-                 if (position->velocity.x == 0 && animation) animation->play("Idle");
-                 break;
-
-                case SDLK_a:
-                 position->velocity.x = 0;
-                 if (position->velocity.y == 0 && animation) animation->play("Idle");
-                 break;
-
-                case SDLK_d:
-                 position->velocity.x = 0;
-                 if (position->velocity.y == 0 && animation) animation->play("Idle");
-                 break;
-
-                case SDLK_s:
-                 position->velocity.y = 0;
-                 if (position->velocity.x == 0 && animation) animation->play("Idle");
-                 break;
-                
-                default:
-                 break;
+        if (keyState[SDL_SCANCODE_S]) {
+            position->velocity.y = 1;
+            isMoving = true;
+        }
+        if (keyState[SDL_SCANCODE_A]) {
+            position->velocity.x = -1;
+            isMoving = true;
+        }
+        if (keyState[SDL_SCANCODE_D]) {
+            position->velocity.x = 1;
+            isMoving = true;
+        }
+        
+        // Update animation based on movement state
+        if (animation) {
+            if (isMoving) {
+                animation->play("Walk");
+            } else {
+                animation->play("Idle");
             }
         }
       }

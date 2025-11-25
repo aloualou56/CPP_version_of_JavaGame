@@ -3,6 +3,7 @@
 #include <cctype>
 #include <atomic>
 #include <SDL.h>
+#include <SDL_image.h>
 #include <map>
 #include <string>
 #include <mutex>
@@ -66,8 +67,17 @@ SDL_Texture* TextureManager::LoadTexture(const char* texture) {
         }
     }
 
-    // Load surface and create texture
+    // Load surface and create texture. First try IMG_Load (works on desktop
+    // and many SDL_image Android builds). If that fails (e.g. assets are
+    // packaged inside the APK), try SDL_RWFromFile + IMG_Load_RW which can
+    // read packaged assets via SDL's RW API.
     SDL_Surface* tempSurface = IMG_Load(texture);
+    if (!tempSurface) {
+        SDL_RWops* rw = SDL_RWFromFile(texture, "rb");
+        if (rw) {
+            tempSurface = IMG_Load_RW(rw, 1); // auto-free rw
+        }
+    }
     SDL_Texture* tex = nullptr;
     if (tempSurface) {
         tex = SDL_CreateTextureFromSurface(Game::renderer, tempSurface);
@@ -182,7 +192,15 @@ void TextureManager::Draw(SDL_Texture *tex, SDL_Rect src, SDL_Rect dest, SDL_Ren
 }
 
 int TextureManager::DetectBottomOpaqueRow(const char* fileName) {
+    // Similar fallback for DetectBottomOpaqueRow: try IMG_Load first, then
+    // SDL_RWFromFile/IMG_Load_RW for packaged assets on Android.
     SDL_Surface* surf = IMG_Load(fileName);
+    if (!surf) {
+        SDL_RWops* rw = SDL_RWFromFile(fileName, "rb");
+        if (rw) {
+            surf = IMG_Load_RW(rw, 1);
+        }
+    }
     if (!surf) return -1;
 
     SDL_PixelFormat *fmt = surf->format;

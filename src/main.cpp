@@ -12,9 +12,11 @@ int main(int argc, char* argv[]) {
     Uint32 frameStart;
     int frametime;
     
+    SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "Starting game process (main)");
     game = new Game();
 
     game->init("prototype", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 768, 576, false);
+    SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "Game::init returned (main)");
 
     while(game->running()) {
 

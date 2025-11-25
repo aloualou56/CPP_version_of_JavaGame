@@ -4,6 +4,7 @@
 #include <atomic>
 #include <SDL.h>
 #include <SDL_image.h>
+#include <sstream>
 #include <map>
 #include <string>
 #include <mutex>
@@ -288,13 +289,23 @@ int TextureManager::GetAnchorOverride(const char* fileName) {
                 buf.resize((size_t)sz);
                 SDL_RWread(rw, &buf[0], 1, (size_t)sz);
                 SDL_RWclose(rw);
-                std::istringstream iss(buf);
-                std::string line;
-                while (std::getline(iss, line)) {
+                // Manually split into lines to avoid relying on <sstream> on
+                // some Android toolchain configurations.
+                size_t start = 0;
+                while (start < buf.size()) {
+                    size_t pos = buf.find('\n', start);
+                    std::string line;
+                    if (pos == std::string::npos) {
+                        line = buf.substr(start);
+                        start = buf.size();
+                    } else {
+                        line = buf.substr(start, pos - start);
+                        start = pos + 1;
+                    }
                     // Trim leading whitespace
                     size_t i = 0; while (i < line.size() && isspace((unsigned char)line[i])) i++;
                     if (i >= line.size()) continue;
-                    if (line[i] == '#' ) continue;
+                    if (line[i] == '#') continue;
                     std::string token = line.substr(i);
                     char img[384]; int val = -1;
                     if (sscanf(token.c_str(), "%383s %d", img, &val) == 2) {

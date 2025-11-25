@@ -12,6 +12,7 @@
 #include <ECS/Componets.hpp>
 #include <Vector2D.hpp>
 #include <Collision.hpp>
+#include <sstream>
 
 // Provide stb_image_write prototype/implementation via a single TU
 #include "stb_image_write.h"
@@ -97,37 +98,60 @@ void Game::init(const char *title, int xpos, int ypos, int width, int height, bo
     Game::managerPtr = &manager;
     
     // Αρχικοποιεί τα περιβαλλοντικά assets (κόσμος 50x50, πλακίδια 96px)
-    // Before creating many textures, scan sprite folder to estimate work for loading screen
-    namespace fs = std::filesystem;
+    // Before creating many textures, try to estimate work for the loading screen.
+    // On desktop we can scan the filesystem; on Android assets are packaged inside
+    // the APK and can't be enumerated via std::filesystem. For portability we
+    // first try to read an `asset_list.txt` manifest (packaged with the APK),
+    // then fall back to filesystem scanning.
     int pngCount = 0;
-    try {
-        for (auto &p : fs::recursive_directory_iterator("sprites")) {
-            if (!p.is_regular_file()) continue;
-            auto ext = p.path().extension().string();
-            for (auto &c : ext) c = (char)tolower(c);
-            if (ext == ".png" || ext == ".bmp" || ext == ".jpg") pngCount++;
+    // Try reading an asset manifest packaged with the app (works on Android)
+    SDL_RWops* rw = SDL_RWFromFile("asset_list.txt", "r");
+    if (rw != nullptr) {
+        Sint64 sz = SDL_RWsize(rw);
+        if (sz > 0) {
+            std::string buf;
+            buf.resize((size_t)sz);
+            SDL_RWread(rw, &buf[0], 1, (size_t)sz);
+            SDL_RWclose(rw);
+            std::istringstream iss(buf);
+            std::string line;
+            while (std::getline(iss, line)) {
+                // trim whitespace
+                auto start = line.find_first_not_of(" \t\r\n");
+                if (start == std::string::npos) continue;
+                auto end = line.find_last_not_of(" \t\r\n");
+                std::string path = line.substr(start, end - start + 1);
+                // count image extensions
+                std::string ext;
+                auto p = path.find_last_of('.');
+                if (p != std::string::npos) ext = path.substr(p);
+                for (auto &c : ext) c = (char)tolower(c);
+                if (ext == ".png" || ext == ".bmp" || ext == ".jpg") pngCount++;
+            }
+        } else {
+            SDL_RWclose(rw);
         }
-    } catch (...) {
-        pngCount = 0;
+    } else {
+        // Fallback: scan local filesystem (desktop case)
+        namespace fs = std::filesystem;
+        try {
+            for (auto &p : fs::recursive_directory_iterator("sprites")) {
+                if (!p.is_regular_file()) continue;
+                auto ext = p.path().extension().string();
+                for (auto &c : ext) c = (char)tolower(c);
+                if (ext == ".png" || ext == ".bmp" || ext == ".jpg") pngCount++;
+            }
+        } catch (...) {
+            pngCount = 0;
+        }
     }
     if (pngCount > 0) TextureManager::SetTotalToLoad(pngCount);
 
     environmentAssets = new EnvironmentAssets(&manager, 50, 50, 96);
     environmentAssets->generateEnvironment();
 
-    // Temporary test pause: keep window responsive and wait for any key/mouse/quit event
-    // so you can interact with the window (debug overlays, walk, spawn particles) before
-    // the main loop begins. Remove this block after testing.
-    std::cout << "Paused after environment generation. Press any key or click the window to continue..." << std::endl;
-    bool _continue_after_pause = false;
-    while (!_continue_after_pause) {
-        SDL_Event ev;
-        while (SDL_PollEvent(&ev)) {
-            if (ev.type == SDL_QUIT) { _continue_after_pause = true; isRunning = false; break; }
-            if (ev.type == SDL_KEYDOWN || ev.type == SDL_MOUSEBUTTONDOWN) { _continue_after_pause = true; break; }
-        }
-        SDL_Delay(16);
-    }
+    // Removed temporary test pause so the game continues immediately
+    // after environment generation instead of waiting for user input.
 
     // Υλοποίηση ECS - Δημιουργία παίκτη με animations
     player.addComponent<PositionComponent>(2400.0f, 2400.0f, 48, 48, 3);  // Ξεκινά στο κέντρο του κόσμου, κλίμακα 3x (μεγαλύτερος)

@@ -1,0 +1,82 @@
+sprites/characters/cutted-character/dead_sprites/dead_1.png
+sprites/characters/cutted-character/dead_sprites/dead_2.png
+sprites/characters/cutted-character/dead_sprites/dead_3.png
+sprites/characters/cutted-character/fight_sprites/fight_1.png
+sprites/characters/cutted-character/fight_sprites/fight_2.png
+sprites/characters/cutted-character/fight_sprites/fight_3.png
+sprites/characters/cutted-character/fight_sprites/fight_4.png
+sprites/characters/cutted-character/standing_sprites/standing_1.png
+sprites/characters/cutted-character/standing_sprites/standing_2.png
+sprites/characters/cutted-character/standing_sprites/standing_3.png
+sprites/characters/cutted-character/standing_sprites/standing_4.png
+sprites/characters/cutted-character/standing_sprites/standing_5.png
+sprites/characters/cutted-character/standing_sprites/standing_6.png
+sprites/characters/cutted-character/walking_sprites/walking_1.png
+sprites/characters/cutted-character/walking_sprites/walking_2.png
+sprites/characters/cutted-character/walking_sprites/walking_3.png
+sprites/characters/cutted-character/walking_sprites/walking_4.png
+sprites/characters/cutted-character/walking_sprites/walking_5.png
+sprites/characters/cutted-character/walking_sprites/walking_6.png
+sprites/characters/slime.png
+sprites/objects/bed.png
+sprites/objects/chest/chestclosed_type1.png
+sprites/objects/chest/chestclosed_type2.png
+sprites/objects/chest/chestopen_type1.png
+sprites/objects/chest/chestopen_type2.png
+sprites/objects/crate.png
+sprites/objects/kiparissi.png
+sprites/objects/kormos_dendrou.png
+sprites/objects/rock.png
+sprites/objects/sign.png
+sprites/objects/table.png
+sprites/objects/thamnos_tonia.png
+sprites/objects/tree.png
+sprites/particles/dust_particles_large.png
+sprites/particles/dust_particles_medium.png
+sprites/particles/dust_particles_small.png
+sprites/tilesets/16x16 set/backups/dirt1.png
+sprites/tilesets/16x16 set/backups/dirt2.png
+sprites/tilesets/16x16 set/backups/dirt3.png
+sprites/tilesets/16x16 set/backups/dirt4.png
+sprites/tilesets/16x16 set/backups/grass1.png
+sprites/tilesets/16x16 set/backups/grass2.png
+sprites/tilesets/16x16 set/backups/grass3.png
+sprites/tilesets/16x16 set/backups/grass4.png
+sprites/tilesets/16x16 set/dirt1.png
+sprites/tilesets/16x16 set/dirt2.png
+sprites/tilesets/16x16 set/dirt3.png
+sprites/tilesets/16x16 set/dirt4.png
+sprites/tilesets/16x16 set/grass1.png
+sprites/tilesets/16x16 set/grass2.png
+sprites/tilesets/16x16 set/grass3.png
+sprites/tilesets/16x16 set/grass4.png
+sprites/tilesets/48grass.png
+sprites/tilesets/48wall.png
+sprites/tilesets/fences/fence1.png
+sprites/tilesets/fences/fence10.png
+sprites/tilesets/fences/fence11.png
+sprites/tilesets/fences/fence12.png
+sprites/tilesets/fences/fence13.png
+sprites/tilesets/fences/fence14.png
+sprites/tilesets/fences/fence15.png
+sprites/tilesets/fences/fence16.png
+sprites/tilesets/fences/fence2.png
+sprites/tilesets/fences/fence3.png
+sprites/tilesets/fences/fence4.png
+sprites/tilesets/fences/fence5.png
+sprites/tilesets/fences/fence6.png
+sprites/tilesets/fences/fence7.png
+sprites/tilesets/fences/fence8.png
+sprites/tilesets/fences/fence9.png
+sprites/tilesets/floors/wooden.png
+sprites/tilesets/grass.png
+sprites/tilesets/plains.png
+sprites/tilesets/walls/walls.png
+sprites/tilesets/walls/wooden_door.png
+sprites/tilesets/walls/wooden_door_b.png
+sprites/tilesets/water_decorations.png
+sprites/ui/heart_1q.png
+sprites/ui/heart_3q.png
+sprites/ui/heart_empty.png
+sprites/ui/heart_full.png
+sprites/ui/heart_half.png

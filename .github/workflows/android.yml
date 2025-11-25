@@ -213,8 +213,54 @@ jobs:
 
     - name: Generate asset manifest and copy assets into Android assets
       run: |
-        echo "Generating asset manifest and copying assets into android/app/src/main/assets/"
-        python3 scripts/generate_asset_manifest.py
+        echo "Preparing asset manifest and copying assets into android/app/src/main/assets/"
+        ASSETS_DIR=android/app/src/main/assets
+        MANIFEST="$ASSETS_DIR/asset_list.txt"
+        mkdir -p "$ASSETS_DIR"
+
+        # If the repo contains the Python generator script, prefer it. This
+        # allows local workflows to use the same script while CI can still
+        # fall back to an inline generator if the script is missing.
+        if [ -f scripts/generate_asset_manifest.py ]; then
+          echo "Found scripts/generate_asset_manifest.py, running it..."
+          # Run with python3 or python (prefer python3)
+          if command -v python3 >/dev/null 2>&1; then
+            python3 scripts/generate_asset_manifest.py
+          elif command -v python >/dev/null 2>&1; then
+            python scripts/generate_asset_manifest.py
+          else
+            echo "Python not found; falling back to inline generator"
+          fi
+        fi
+
+        # If the manifest still doesn't exist (or script missing), run inline generator
+        if [ ! -f "$MANIFEST" ] || [ ! -s "$MANIFEST" ]; then
+          echo "Running inline manifest generator as fallback..."
+          : > "$MANIFEST"
+          for ext in png jpg bmp; do
+            if [ -d sprites ] || [ -d assets ]; then
+              find sprites assets -type f -iname "*.${ext}" -print 2>/dev/null | sed 's|^./||' >> "$MANIFEST" || true
+            fi
+          done
+          if [ -f "$MANIFEST" ]; then
+            sort -u "$MANIFEST" -o "$MANIFEST" || true
+          fi
+
+          for d in sprites assets; do
+            if [ -d "$d" ]; then
+              rm -rf "$ASSETS_DIR/$d"
+              mkdir -p "$ASSETS_DIR/$d"
+              cp -a "$d/." "$ASSETS_DIR/$d/"
+            fi
+          done
+          if [ -f "$MANIFEST" ]; then
+            echo "Wrote manifest with $(wc -l < \"$MANIFEST\") entries to $MANIFEST"
+          else
+            echo "No manifest written (no sprites/assets found)"
+          fi
+        else
+          echo "Manifest already created by script, leaving as-is: $MANIFEST"
+        fi
       shell: bash
 
     - name: Grant execute permission for gradlew

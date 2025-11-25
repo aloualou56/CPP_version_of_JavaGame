@@ -1,7 +1,7 @@
 #ifndef TextureManager_hpp
 #define TextureManager_hpp
 
-#include <Game.hpp>
+#include "Game.hpp"
 
 #include <string>
 #include <map>

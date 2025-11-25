@@ -1,5 +1,5 @@
-#include "Collision.hpp"
-#include "Map.hpp"
+#include <Collision.hpp>
+#include <Map.hpp>
 
 bool Collision::AABB(const SDL_Rect& recA, const SDL_Rect& recB) {
     // Τυπική δοκιμή επικάλυψης AABB (χωρίς επιπλέον περιθώρια)

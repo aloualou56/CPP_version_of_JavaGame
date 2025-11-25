@@ -1,6 +1,6 @@
-#include "Environment.hpp"
-#include "../ECS/ECS.hpp"
-#include "../ECS/Componets.hpp"
+#include <Environment/Environment.hpp>
+#include <ECS/ECS.hpp>
+#include <ECS/Componets.hpp>
 
 namespace EnvironmentFactory {
     

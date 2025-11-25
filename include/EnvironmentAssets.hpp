@@ -1,8 +1,8 @@
 #ifndef EnvironmentAssets_hpp
 #define EnvironmentAssets_hpp
 
-#include <ECS/ECS.hpp>
-#include <Environment/Environment.hpp>
+#include "ECS/ECS.hpp"
+#include "Environment/Environment.hpp"
 #include <random>
 #include <ctime>
 

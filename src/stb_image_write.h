@@ -13,6 +13,10 @@
 extern "C" {
 #endif
 
+// Public prototype for PNG writer. Implementation is included when
+// `STB_IMAGE_WRITE_IMPLEMENTATION` is defined in exactly one translation unit.
+int stbi_write_png(const char *filename, int w, int h, int comp, const void *data, int stride_in_bytes);
+
 // Note: the implementation is included when STB_IMAGE_WRITE_IMPLEMENTATION is defined
 
 #ifdef __cplusplus
@@ -62,7 +66,7 @@ static unsigned int crc(unsigned char *buf, int len) {
     return update_crc(0xffffffffu, buf, len) ^ 0xffffffffu;
 }
 
-static int stbi_write_png(const char *filename, int w, int h, int comp, const void *data, int stride_in_bytes) {
+int stbi_write_png(const char *filename, int w, int h, int comp, const void *data, int stride_in_bytes) {
     if (comp < 3) return 0;
     FILE *f = fopen(filename, "wb");
     if (!f) return 0;

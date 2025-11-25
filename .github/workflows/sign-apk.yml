@@ -124,15 +124,25 @@ jobs:
       - name: Prepare signed APK
         run: |
           # The action outputs the signed file path
-          if [ -n "${{ steps.sign-apk.outputs.signedReleaseFile }}" ] && [ -f "${{ steps.sign-apk.outputs.signedReleaseFile }}" ]; then
-            cp "${{ steps.sign-apk.outputs.signedReleaseFile }}" Game-signed.apk
-            echo "Copied signed APK from action output"
+          SIGNED_FROM_ACTION="${{ steps.sign-apk.outputs.signedReleaseFile }}"
+          if [ -n "$SIGNED_FROM_ACTION" ] && [ -f "$SIGNED_FROM_ACTION" ]; then
+            # Only copy if the source filename is different from the destination
+            if [ "$(basename "$SIGNED_FROM_ACTION")" != "Game-signed.apk" ]; then
+              cp "$SIGNED_FROM_ACTION" Game-signed.apk
+              echo "Copied signed APK from action output"
+            else
+              echo "Signed APK already named Game-signed.apk"
+            fi
           else
             # Look for any signed APK files in the current directory
             SIGNED_APK=$(find . -maxdepth 1 -name "*-signed*.apk" | head -1)
             if [ -n "$SIGNED_APK" ] && [ -f "$SIGNED_APK" ]; then
-              cp "$SIGNED_APK" Game-signed.apk
-              echo "Found and copied signed APK: $SIGNED_APK"
+              if [ "$(basename "$SIGNED_APK")" != "Game-signed.apk" ]; then
+                cp "$SIGNED_APK" Game-signed.apk
+                echo "Found and copied signed APK: $SIGNED_APK"
+              else
+                echo "Signed APK already named Game-signed.apk"
+              fi
             else
               echo "ERROR: No signed APK found!"
               ls -la *.apk 2>/dev/null || echo "No APK files found"

@@ -1,7 +1,7 @@
 #include <SDL2/SDL.h>
 #include <Game.hpp>
 
-#define FPS 30
+#define FPS 60
 
 Game *game = nullptr;
 

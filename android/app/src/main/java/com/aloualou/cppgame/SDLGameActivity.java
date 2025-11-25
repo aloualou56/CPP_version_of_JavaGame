@@ -1,4 +1,4 @@
-package com.game.sdlgame;
+package com.aloualou.cppgame;
 
 import android.os.Build;
 import android.os.Bundle;

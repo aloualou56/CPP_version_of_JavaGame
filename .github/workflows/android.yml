@@ -17,9 +17,9 @@ on:
       - '.github/workflows/android.yml'
   workflow_dispatch:
 
-# Limit permissions of the GITHUB_TOKEN
+# Permissions for the GITHUB_TOKEN
 permissions:
-  contents: read
+  contents: write
 
 env:
   SDL2_VERSION: "2.28.5"
@@ -169,6 +169,24 @@ jobs:
       working-directory: android
       run: |
         ./gradlew assembleRelease --stacktrace
+
+    - name: Copy APK to repository root
+      run: |
+        # Find the built APK and copy it to root as Game.apk
+        APK_PATH=$(find android/app/build/outputs/apk/release -name "*.apk" | head -1)
+        if [ -n "$APK_PATH" ]; then
+          cp "$APK_PATH" Game.apk
+          echo "Copied APK to Game.apk"
+        fi
+
+    - name: Commit APK to repository
+      if: github.event_name == 'push'
+      run: |
+        git config --local user.email "github-actions[bot]@users.noreply.github.com"
+        git config --local user.name "github-actions[bot]"
+        git add Game.apk
+        git diff --staged --quiet || git commit -m "Update Game.apk [skip ci]"
+        git push
 
     - name: Upload unsigned APK
       uses: actions/upload-artifact@v4

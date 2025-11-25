@@ -1,0 +1,36 @@
+# Android Studio / IntelliJ
+*.iml
+.idea/
+.gradle/
+
+# Build outputs
+build/
+app/build/
+app/release/
+
+# Local configuration
+local.properties
+
+# SDL2 downloaded libraries (downloaded during build)
+app/src/main/cpp/SDL2/
+app/src/main/cpp/SDL2_image/
+app/src/main/java/org/libsdl/
+
+# Keystore files (never commit these!)
+*.jks
+*.keystore
+
+# APK files
+*.apk
+*.aab
+
+# Proguard
+proguard/
+
+# Logs
+*.log
+
+# Misc
+.externalNativeBuild/
+.cxx/
+captures/

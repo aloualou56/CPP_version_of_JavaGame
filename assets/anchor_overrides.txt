@@ -1,0 +1,6 @@
+# Per-asset anchor overrides (path anchor_row)
+# Example: sprites/objects/thamnos_tonia.png 36
+# Uncomment and set values if auto-detect is wrong for an asset
+sprites/objects/thamnos_tonia.png 30
+sprites/objects/tree.png 34
+sprites/objects/rock.png 14

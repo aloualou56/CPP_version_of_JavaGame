@@ -10,7 +10,10 @@ namespace EnvironmentFactory {
         auto& grass = manager.addEntity();
         grass.addComponent<PositionComponent>(x, y, 16, 16, 4);  // Κλίμακα 4x για μικρότερες διακοσμήσεις
         grass.addComponent<SpriteComponent>(spritePath.c_str());
-        
+        // Ensure small decorative tiles are always drawn behind characters.
+        // Set anchor to top (0) so their drawOrder is destRect.y + 0 (earlier)
+        grass.getComponent<SpriteComponent>().setAnchorY(0);
+
         return grass;
     }
     
@@ -19,6 +22,13 @@ namespace EnvironmentFactory {
         bush.addComponent<PositionComponent>(x, y, 48, 48, 2);  // Κλίμακα 2x
         bush.addComponent<SpriteComponent>("sprites/objects/thamnos_tonia.png");
         bush.addComponent<ColliderComponent>("bush");
+        // Adjust anchor so draw order uses the bush 'feet' rather than full image bottom
+        {
+            auto &pos = bush.getComponent<PositionComponent>();
+            int defaultAnchor = pos.height * pos.scale;
+            int adjusted = defaultAnchor - 8; // pull anchor slightly up (tweak if needed)
+            bush.getComponent<SpriteComponent>().setAnchorY(adjusted);
+        }
         
         return bush;
     }
@@ -28,6 +38,13 @@ namespace EnvironmentFactory {
         tree.addComponent<PositionComponent>(x, y, 48, 48, 3);  // Κλίμακα 3x
         tree.addComponent<SpriteComponent>("sprites/objects/tree.png");
         tree.addComponent<ColliderComponent>("tree");
+        // Trees are usually taller; set anchor slightly above bottom to match trunk base
+        {
+            auto &pos = tree.getComponent<PositionComponent>();
+            int defaultAnchor = pos.height * pos.scale;
+            int adjusted = defaultAnchor - 12; // tweak as necessary for correct overlap
+            tree.getComponent<SpriteComponent>().setAnchorY(adjusted);
+        }
         
         return tree;
     }

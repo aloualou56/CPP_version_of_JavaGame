@@ -54,7 +54,8 @@ SOURCES = $(SRC_DIR)/main.cpp \
           $(SRC_DIR)/Collision.cpp \
           $(SRC_DIR)/Camera.cpp \
           $(SRC_DIR)/EnvironmentAssets.cpp \
-          $(SRC_DIR)/Environment/Environment.cpp
+          $(SRC_DIR)/Environment/Environment.cpp \
+          $(SRC_DIR)/ECS/ParticleComponent.cpp
 
 # Object files list (Flattened structure)
 OBJECTS = $(OBJ_DIR)/main.o \
@@ -70,7 +71,8 @@ OBJECTS = $(OBJ_DIR)/main.o \
           $(OBJ_DIR)/Environment.o \
           $(OBJ_DIR)/SpriteComponent.o \
           $(OBJ_DIR)/AnimationComponent.o \
-          $(OBJ_DIR)/PositionComponent.o
+          $(OBJ_DIR)/PositionComponent.o \
+          $(OBJ_DIR)/ParticleComponent.o
 
 
 # ==========================================
@@ -105,6 +107,9 @@ $(OBJ_DIR)/AnimationComponent.o: $(SRC_DIR)/ECS/AnimationComponent.cpp | $(OBJ_D
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
 $(OBJ_DIR)/PositionComponent.o: $(SRC_DIR)/ECS/PositionComponent.cpp | $(OBJ_DIR)
+	$(CXX) $(CXXFLAGS) -c $< -o $@
+
+$(OBJ_DIR)/ParticleComponent.o: $(SRC_DIR)/ECS/ParticleComponent.cpp | $(OBJ_DIR)
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
 # --- Clean Rule (Windows Native) ---

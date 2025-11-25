@@ -37,6 +37,3 @@ android/app/src/main/java/org/libsdl/
 # Ignore APKs in android directory but keep Game.apk in root
 android/**/*.apk
 !Game.apk
-
-# Gradle wrapper JAR (will be downloaded on first build)
-android/gradle/wrapper/gradle-wrapper.jar

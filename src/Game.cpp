@@ -113,14 +113,18 @@ void Game::init(const char *title, int xpos, int ypos, int width, int height, bo
             buf.resize((size_t)sz);
             SDL_RWread(rw, &buf[0], 1, (size_t)sz);
             SDL_RWclose(rw);
-            std::istringstream iss(buf);
-            std::string line;
-            while (std::getline(iss, line)) {
+            // Manually split into lines to avoid depending on <sstream>.
+            size_t startpos = 0;
+            while (startpos < buf.size()) {
+                size_t pos = buf.find('\n', startpos);
+                std::string line;
+                if (pos == std::string::npos) { line = buf.substr(startpos); startpos = buf.size(); }
+                else { line = buf.substr(startpos, pos - startpos); startpos = pos + 1; }
                 // trim whitespace
-                auto start = line.find_first_not_of(" \t\r\n");
-                if (start == std::string::npos) continue;
-                auto end = line.find_last_not_of(" \t\r\n");
-                std::string path = line.substr(start, end - start + 1);
+                auto s = line.find_first_not_of(" \t\r\n");
+                if (s == std::string::npos) continue;
+                auto e = line.find_last_not_of(" \t\r\n");
+                std::string path = line.substr(s, e - s + 1);
                 // count image extensions
                 std::string ext;
                 auto p = path.find_last_of('.');

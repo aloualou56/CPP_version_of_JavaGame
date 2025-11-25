@@ -142,18 +142,44 @@ jobs:
             mkdir -p "SDL2_image-build-$ABI"
             cd "SDL2_image-build-$ABI"
             
-            # SDL2_image needs to know where SDL2 is
+            # Get absolute path to SDL2 build directory
+            SDL2_BUILD_DIR=$(pwd)/../SDL2-build-$ABI
+            SDL2_SOURCE_DIR=$(pwd)/../SDL2-source
+            SDL2_INCLUDE_DIR=$(pwd)/../SDL2/include
+            SDL2_LIB_DIR=$(pwd)/../SDL2/lib/$ABI
+            
+            # SDL2_image needs to know where SDL2 is - use CMAKE_PREFIX_PATH and explicit include/lib paths
             cmake ../SDL2_image-source \
               -DCMAKE_TOOLCHAIN_FILE=$ANDROID_NDK_HOME/build/cmake/android.toolchain.cmake \
               -DANDROID_ABI=$ABI \
               -DANDROID_PLATFORM=android-21 \
               -DCMAKE_BUILD_TYPE=Release \
-              -DSDL2_DIR=$(pwd)/../SDL2 \
+              -DSDL2_INCLUDE_DIR=$SDL2_INCLUDE_DIR \
+              -DSDL2_LIBRARY=$SDL2_LIB_DIR/libSDL2.so \
               -DSDL2IMAGE_SAMPLES=OFF \
               -DSDL2IMAGE_TESTS=OFF \
-              -DBUILD_SHARED_LIBS=ON 2>/dev/null || true
+              -DSDL2IMAGE_DEPS_SHARED=OFF \
+              -DSDL2IMAGE_VENDORED=OFF \
+              -DSDL2IMAGE_AVIF=OFF \
+              -DSDL2IMAGE_BMP=ON \
+              -DSDL2IMAGE_GIF=OFF \
+              -DSDL2IMAGE_JPG=OFF \
+              -DSDL2IMAGE_JXL=OFF \
+              -DSDL2IMAGE_LBM=OFF \
+              -DSDL2IMAGE_PCX=OFF \
+              -DSDL2IMAGE_PNG=ON \
+              -DSDL2IMAGE_PNM=OFF \
+              -DSDL2IMAGE_QOI=OFF \
+              -DSDL2IMAGE_SVG=OFF \
+              -DSDL2IMAGE_TGA=OFF \
+              -DSDL2IMAGE_TIF=OFF \
+              -DSDL2IMAGE_WEBP=OFF \
+              -DSDL2IMAGE_XCF=OFF \
+              -DSDL2IMAGE_XPM=OFF \
+              -DSDL2IMAGE_XV=OFF \
+              -DBUILD_SHARED_LIBS=ON 2>&1 || echo "SDL2_image cmake configuration failed, continuing..."
             
-            cmake --build . --config Release -j$(nproc) 2>/dev/null || true
+            cmake --build . --config Release -j$(nproc) 2>&1 || echo "SDL2_image build failed, continuing..."
             
             cd ..
             mkdir -p "SDL2_image/lib/$ABI"

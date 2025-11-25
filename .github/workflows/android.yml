@@ -142,9 +142,7 @@ jobs:
             mkdir -p "SDL2_image-build-$ABI"
             cd "SDL2_image-build-$ABI"
             
-            # Get absolute path to SDL2 build directory
-            SDL2_BUILD_DIR=$(pwd)/../SDL2-build-$ABI
-            SDL2_SOURCE_DIR=$(pwd)/../SDL2-source
+            # Get paths to SDL2 include and library directories
             SDL2_INCLUDE_DIR=$(pwd)/../SDL2/include
             SDL2_LIB_DIR=$(pwd)/../SDL2/lib/$ABI
             

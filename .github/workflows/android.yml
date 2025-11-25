@@ -219,46 +219,40 @@ jobs:
       run: |
         ./gradlew assembleRelease --stacktrace
 
-    - name: Copy APK to repository root
-      run: |
-        # Find the built APK and copy it to root as Game.apk
-        APK_PATH=$(find android/app/build/outputs/apk/release -name "*.apk" | head -1)
-        if [ -n "$APK_PATH" ]; then
-          cp "$APK_PATH" Game.apk
-          echo "Copied APK to Game.apk"
-        fi
-
-    - name: Commit APK to repository
-      if: github.event_name == 'push'
-      run: |
-        git config --local user.email "github-actions[bot]@users.noreply.github.com"
-        git config --local user.name "github-actions[bot]"
-        git add Game.apk
-        git diff --staged --quiet || git commit -m "Update Game.apk [skip ci]"
-        git push
-
-    - name: Upload unsigned APK
-      uses: actions/upload-artifact@v4
-      with:
-        name: app-release-unsigned
-        path: android/app/build/outputs/apk/release/*.apk
-        if-no-files-found: error
-
-    - name: Sign APK (if secrets are available)
-      if: ${{ env.KEYSTORE_BASE64 != '' }}
+    - name: Sign APK (always - uses debug keystore if no secrets configured)
       env:
         KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
         KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
         KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
         KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
       run: |
-        # Decode keystore
-        echo "$KEYSTORE_BASE64" | base64 -d > keystore.jks
-        
         # Find the unsigned APK
         UNSIGNED_APK=$(find android/app/build/outputs/apk/release -name "*.apk" | head -1)
         ALIGNED_APK="android/app/build/outputs/apk/release/app-release-aligned.apk"
         SIGNED_APK="android/app/build/outputs/apk/release/app-release-signed.apk"
+        
+        if [ -n "$KEYSTORE_BASE64" ]; then
+          echo "Using provided keystore from secrets"
+          echo "$KEYSTORE_BASE64" | base64 -d > keystore.jks
+          KS_PASS="$KEYSTORE_PASSWORD"
+          KS_ALIAS="$KEY_ALIAS"
+          KS_KEY_PASS="$KEY_PASSWORD"
+        else
+          echo "No keystore secret provided, generating debug keystore for signing"
+          # Note: These are standard Android debug keystore credentials
+          # They are intentionally simple because debug-signed APKs are only for testing
+          keytool -genkey -v -keystore keystore.jks \
+            -alias androiddebugkey \
+            -keyalg RSA \
+            -keysize 2048 \
+            -validity 10000 \
+            -storepass android \
+            -keypass android \
+            -dname "CN=Debug, OU=Debug, O=Debug, L=Debug, ST=Debug, C=US"
+          KS_PASS="android"
+          KS_ALIAS="androiddebugkey"
+          KS_KEY_PASS="android"
+        fi
         
         # Align APK
         $ANDROID_SDK_ROOT/build-tools/34.0.0/zipalign -v -p 4 "$UNSIGNED_APK" "$ALIGNED_APK"
@@ -266,24 +260,47 @@ jobs:
         # Sign APK
         $ANDROID_SDK_ROOT/build-tools/34.0.0/apksigner sign \
           --ks keystore.jks \
-          --ks-pass "pass:$KEYSTORE_PASSWORD" \
-          --ks-key-alias "$KEY_ALIAS" \
-          --key-pass "pass:$KEY_PASSWORD" \
+          --ks-pass "pass:$KS_PASS" \
+          --ks-key-alias "$KS_ALIAS" \
+          --key-pass "pass:$KS_KEY_PASS" \
           --out "$SIGNED_APK" \
           "$ALIGNED_APK"
         
+        # Verify the APK is signed
+        $ANDROID_SDK_ROOT/build-tools/34.0.0/apksigner verify --verbose "$SIGNED_APK"
+        
         # Clean up
         rm keystore.jks "$ALIGNED_APK"
+        
+        echo "APK signed successfully!"
+
+    - name: Copy signed APK to repository root
+      run: |
+        # Copy the signed APK to root as Game.apk
+        SIGNED_APK="android/app/build/outputs/apk/release/app-release-signed.apk"
+        if [ -f "$SIGNED_APK" ]; then
+          cp "$SIGNED_APK" Game.apk
+          echo "Copied signed APK to Game.apk"
+        else
+          echo "ERROR: Signed APK not found!"
+          exit 1
+        fi
+
+    - name: Commit signed APK to repository
+      if: github.event_name == 'push'
+      run: |
+        git config --local user.email "github-actions[bot]@users.noreply.github.com"
+        git config --local user.name "github-actions[bot]"
+        git add Game.apk
+        git diff --staged --quiet || git commit -m "Update Game.apk (signed build) [skip ci]"
+        git push
 
     - name: Upload signed APK
-      if: ${{ env.KEYSTORE_BASE64 != '' }}
       uses: actions/upload-artifact@v4
-      env:
-        KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
       with:
         name: app-release-signed
         path: android/app/build/outputs/apk/release/app-release-signed.apk
-        if-no-files-found: warn
+        if-no-files-found: error
 
     - name: Create release artifacts zip
       run: |

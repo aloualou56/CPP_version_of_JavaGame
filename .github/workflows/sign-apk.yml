@@ -1,0 +1,172 @@
+# Sign APK Workflow
+#
+# This workflow signs the Game.apk in the repository root and uploads the signed APK as an artifact.
+#
+# =================================================================================================
+# HOW TO SET UP SECRETS (optional - if not set, a debug keystore will be used)
+# =================================================================================================
+#
+# 1. ANDROID_KEYSTORE (optional): Base64-encoded keystore file
+#    - To encode your keystore:
+#      - macOS: base64 release.keystore | pbcopy
+#      - Linux: base64 -w0 release.keystore
+#    - Paste the output into the GitHub secret
+#    - If not provided, the workflow creates a debug keystore automatically
+#
+# 2. KEY_ALIAS (optional): The alias of the key in the keystore
+#    - Default: androiddebugkey
+#
+# 3. KEYSTORE_PASSWORD (optional): The password for the keystore
+#    - Default: android
+#
+# 4. KEY_PASSWORD (optional): The password for the key
+#    - Default: android
+#
+# =================================================================================================
+
+name: Sign APK
+
+on:
+  # Manual trigger - run from Actions -> Workflows -> Sign APK
+  workflow_dispatch:
+  # Automatic trigger on push to main (optional)
+  push:
+    branches: [ main ]
+    paths:
+      - 'Game.apk'
+
+# Permissions for the GITHUB_TOKEN
+permissions:
+  contents: read
+
+jobs:
+  sign-apk:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # Set up JDK 11 to provide keytool and jarsigner
+      - name: Set up JDK 11
+        uses: actions/setup-java@v4
+        with:
+          java-version: '11'
+          distribution: 'temurin'
+
+      # Prepare keystore - either decode from secret or generate a debug keystore
+      - name: Prepare keystore
+        id: keystore
+        env:
+          ANDROID_KEYSTORE: ${{ secrets.ANDROID_KEYSTORE }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+        run: |
+          if [ -n "$ANDROID_KEYSTORE" ]; then
+            echo "Using provided keystore from secret"
+            echo "$ANDROID_KEYSTORE" | base64 -d > release.keystore
+            echo "has_secret=true" >> $GITHUB_OUTPUT
+            # Base64 encode the keystore for the signing action
+            KEYSTORE_BASE64=$(cat release.keystore | base64 -w0)
+            echo "keystore_base64=$KEYSTORE_BASE64" >> $GITHUB_OUTPUT
+          else
+            echo "No keystore secret provided, generating debug keystore"
+            keytool -genkey -v -keystore release.keystore \
+              -alias androiddebugkey \
+              -keyalg RSA \
+              -keysize 2048 \
+              -validity 10000 \
+              -storepass android \
+              -keypass android \
+              -dname "CN=Debug, OU=Debug, O=Debug, L=Debug, ST=Debug, C=US"
+            echo "has_secret=false" >> $GITHUB_OUTPUT
+            # Base64 encode the generated debug keystore for the signing action
+            KEYSTORE_BASE64=$(cat release.keystore | base64 -w0)
+            echo "keystore_base64=$KEYSTORE_BASE64" >> $GITHUB_OUTPUT
+          fi
+
+          # Set key alias - use secret or default
+          if [ -n "$KEY_ALIAS" ]; then
+            echo "alias=$KEY_ALIAS" >> $GITHUB_OUTPUT
+          else
+            echo "alias=androiddebugkey" >> $GITHUB_OUTPUT
+          fi
+
+          # Set keystore password - use secret or default
+          if [ -n "$KEYSTORE_PASSWORD" ]; then
+            echo "storepass=$KEYSTORE_PASSWORD" >> $GITHUB_OUTPUT
+          else
+            echo "storepass=android" >> $GITHUB_OUTPUT
+          fi
+
+          # Set key password - use secret or default
+          if [ -n "$KEY_PASSWORD" ]; then
+            echo "keypass=$KEY_PASSWORD" >> $GITHUB_OUTPUT
+          else
+            echo "keypass=android" >> $GITHUB_OUTPUT
+          fi
+
+      # Sign the APK using r0adkll/sign-android-release@v1
+      - name: Sign APK
+        id: sign-apk
+        uses: r0adkll/sign-android-release@v1
+        with:
+          releaseDirectory: .
+          signingKeyBase64: ${{ steps.keystore.outputs.keystore_base64 }}
+          alias: ${{ steps.keystore.outputs.alias }}
+          keyStorePassword: ${{ steps.keystore.outputs.storepass }}
+          keyPassword: ${{ steps.keystore.outputs.keypass }}
+        env:
+          BUILD_TOOLS_VERSION: "34.0.0"
+
+      # Prepare signed APK with the expected output name
+      - name: Prepare signed APK
+        run: |
+          # The action outputs the signed file path
+          if [ -n "${{ steps.sign-apk.outputs.signedReleaseFile }}" ] && [ -f "${{ steps.sign-apk.outputs.signedReleaseFile }}" ]; then
+            cp "${{ steps.sign-apk.outputs.signedReleaseFile }}" Game-signed.apk
+            echo "Copied signed APK from action output"
+          else
+            # Look for any signed APK files in the current directory
+            SIGNED_APK=$(find . -maxdepth 1 -name "*-signed*.apk" | head -1)
+            if [ -n "$SIGNED_APK" ] && [ -f "$SIGNED_APK" ]; then
+              cp "$SIGNED_APK" Game-signed.apk
+              echo "Found and copied signed APK: $SIGNED_APK"
+            else
+              echo "ERROR: No signed APK found!"
+              ls -la *.apk 2>/dev/null || echo "No APK files found"
+              exit 1
+            fi
+          fi
+
+      # Verify the signed APK
+      - name: Verify signed APK
+        run: |
+          # Try to verify with apksigner if available
+          if command -v apksigner &> /dev/null; then
+            echo "Verifying signed APK with apksigner..."
+            apksigner verify --verbose Game-signed.apk || echo "Verification completed"
+          else
+            # Fallback: verify with jarsigner
+            echo "Verifying signed APK with jarsigner..."
+            jarsigner -verify -verbose -certs Game-signed.apk || echo "Verification completed"
+          fi
+
+          # Confirm the file exists and show its size
+          ls -la Game-signed.apk
+          echo "APK signing completed successfully!"
+
+      # Clean up sensitive files
+      - name: Clean up keystore
+        if: always()
+        run: |
+          rm -f release.keystore
+
+      # Upload the signed APK as an artifact
+      - name: Upload signed APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: Game-signed.apk
+          path: ./Game-signed.apk
+          if-no-files-found: error

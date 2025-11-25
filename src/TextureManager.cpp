@@ -73,15 +73,28 @@ SDL_Texture* TextureManager::LoadTexture(const char* texture) {
     // read packaged assets via SDL's RW API.
     SDL_Surface* tempSurface = IMG_Load(texture);
     if (!tempSurface) {
+        // Log why IMG_Load failed for debugging
+        const char* imgErr = IMG_GetError();
+        SDL_LogWarn(SDL_LOG_CATEGORY_APPLICATION, "IMG_Load failed for '%s' -> %s", texture ? texture : "(null)", imgErr ? imgErr : "(no error)");
         SDL_RWops* rw = SDL_RWFromFile(texture, "rb");
         if (rw) {
             tempSurface = IMG_Load_RW(rw, 1); // auto-free rw
+            if (!tempSurface) {
+                const char* imgErr2 = IMG_GetError();
+                SDL_LogWarn(SDL_LOG_CATEGORY_APPLICATION, "IMG_Load_RW failed for '%s' -> %s", texture ? texture : "(null)", imgErr2 ? imgErr2 : "(no error)");
+            }
+        } else {
+            SDL_LogWarn(SDL_LOG_CATEGORY_APPLICATION, "SDL_RWFromFile returned NULL for '%s'", texture ? texture : "(null)");
         }
     }
     SDL_Texture* tex = nullptr;
     if (tempSurface) {
         tex = SDL_CreateTextureFromSurface(Game::renderer, tempSurface);
         SDL_FreeSurface(tempSurface);
+    }
+    else {
+        // Log failure to create a surface for diagnosing missing/corrupt assets
+        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Failed to load image '%s' (texture will be null)", texture ? texture : "(null)");
     }
 
     // Insert into cache if valid
@@ -196,12 +209,19 @@ int TextureManager::DetectBottomOpaqueRow(const char* fileName) {
     // SDL_RWFromFile/IMG_Load_RW for packaged assets on Android.
     SDL_Surface* surf = IMG_Load(fileName);
     if (!surf) {
+        SDL_LogWarn(SDL_LOG_CATEGORY_APPLICATION, "IMG_Load failed for '%s' in DetectBottomOpaqueRow: %s", fileName ? fileName : "(null)", IMG_GetError());
         SDL_RWops* rw = SDL_RWFromFile(fileName, "rb");
         if (rw) {
             surf = IMG_Load_RW(rw, 1);
+            if (!surf) SDL_LogWarn(SDL_LOG_CATEGORY_APPLICATION, "IMG_Load_RW failed for '%s' in DetectBottomOpaqueRow: %s", fileName ? fileName : "(null)", IMG_GetError());
+        } else {
+            SDL_LogWarn(SDL_LOG_CATEGORY_APPLICATION, "SDL_RWFromFile returned NULL for '%s' in DetectBottomOpaqueRow", fileName ? fileName : "(null)");
         }
     }
-    if (!surf) return -1;
+    if (!surf) {
+        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "DetectBottomOpaqueRow: could not load surface for '%s'", fileName ? fileName : "(null)");
+        return -1;
+    }
 
     SDL_PixelFormat *fmt = surf->format;
     int bpp = fmt->BytesPerPixel;
@@ -258,21 +278,50 @@ int TextureManager::GetAnchorOverride(const char* fileName) {
     if (!loaded) {
         loaded = true;
         const char *path = "assets/anchor_overrides.txt";
-        FILE *f = fopen(path, "r");
-        if (!f) return -1;
-        char line[512];
-        while (fgets(line, sizeof(line), f)) {
-            // Trim leading whitespace
-            char *s = line;
-            while (*s && isspace((unsigned char)*s)) s++;
-            if (*s == '\0' || *s == '#' || *s == '\n') continue;
-            // Parse token and int
-            char img[384]; int val = -1;
-            if (sscanf(s, "%383s %d", img, &val) == 2) {
-                overrides[std::string(img)] = val;
+        // Try to read via SDL_RWFromFile first (works for packaged APK assets),
+        // fall back to fopen for desktop where assets may be real files.
+        SDL_RWops* rw = SDL_RWFromFile(path, "r");
+        if (rw) {
+            Sint64 sz = SDL_RWsize(rw);
+            if (sz > 0) {
+                std::string buf;
+                buf.resize((size_t)sz);
+                SDL_RWread(rw, &buf[0], 1, (size_t)sz);
+                SDL_RWclose(rw);
+                std::istringstream iss(buf);
+                std::string line;
+                while (std::getline(iss, line)) {
+                    // Trim leading whitespace
+                    size_t i = 0; while (i < line.size() && isspace((unsigned char)line[i])) i++;
+                    if (i >= line.size()) continue;
+                    if (line[i] == '#' ) continue;
+                    std::string token = line.substr(i);
+                    char img[384]; int val = -1;
+                    if (sscanf(token.c_str(), "%383s %d", img, &val) == 2) {
+                        overrides[std::string(img)] = val;
+                    }
+                }
+            } else {
+                SDL_RWclose(rw);
+            }
+        } else {
+            FILE *f = fopen(path, "r");
+            if (f) {
+                char line[512];
+                while (fgets(line, sizeof(line), f)) {
+                    char *s = line;
+                    while (*s && isspace((unsigned char)*s)) s++;
+                    if (*s == '\0' || *s == '#' || *s == '\n') continue;
+                    char img[384]; int val = -1;
+                    if (sscanf(s, "%383s %d", img, &val) == 2) {
+                        overrides[std::string(img)] = val;
+                    }
+                }
+                fclose(f);
+            } else {
+                SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "Anchor overrides file not found: %s", path);
             }
         }
-        fclose(f);
     }
     if (!fileName) return -1;
     auto it = overrides.find(std::string(fileName));

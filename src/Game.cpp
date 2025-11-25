@@ -145,10 +145,16 @@ void Game::init(const char *title, int xpos, int ypos, int width, int height, bo
             pngCount = 0;
         }
     }
-    if (pngCount > 0) TextureManager::SetTotalToLoad(pngCount);
+    if (pngCount > 0) {
+        TextureManager::SetTotalToLoad(pngCount);
+        SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "Asset manifest/scan found %d image files", pngCount);
+    } else {
+        SDL_LogWarn(SDL_LOG_CATEGORY_APPLICATION, "No image assets found by manifest or filesystem scan (pngCount=0)");
+    }
 
     environmentAssets = new EnvironmentAssets(&manager, 50, 50, 96);
     environmentAssets->generateEnvironment();
+    SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "Environment generation complete");
 
     // Removed temporary test pause so the game continues immediately
     // after environment generation instead of waiting for user input.

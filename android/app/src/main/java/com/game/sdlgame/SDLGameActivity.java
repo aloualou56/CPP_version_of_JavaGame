@@ -1,12 +1,12 @@
 package com.game.sdlgame;
 
-import android.app.Activity;
-import android.content.Context;
-import android.content.res.AssetManager;
+import android.os.Build;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
+import android.view.Window;
 import android.view.WindowManager;
+import android.view.WindowInsetsController;
 
 import org.libsdl.app.SDLActivity;
 
@@ -47,18 +47,34 @@ public class SDLGameActivity extends SDLActivity {
     }
 
     /**
-     * Hide system UI for a full immersive experience
+     * Hide system UI for a full immersive experience.
+     * Uses WindowInsetsController for API 30+ with fallback to deprecated methods.
      */
+    @SuppressWarnings("deprecation")
     private void hideSystemUI() {
-        View decorView = getWindow().getDecorView();
-        decorView.setSystemUiVisibility(
-            View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
-            | View.SYSTEM_UI_FLAG_LAYOUT_STABLE
-            | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
-            | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
-            | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
-            | View.SYSTEM_UI_FLAG_FULLSCREEN
-        );
+        Window window = getWindow();
+        View decorView = window.getDecorView();
+        
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            // API 30+ uses WindowInsetsController
+            WindowInsetsController controller = window.getInsetsController();
+            if (controller != null) {
+                controller.hide(android.view.WindowInsets.Type.statusBars() 
+                    | android.view.WindowInsets.Type.navigationBars());
+                controller.setSystemBarsBehavior(
+                    WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE);
+            }
+        } else {
+            // Fallback for older APIs
+            decorView.setSystemUiVisibility(
+                View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
+                | View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+                | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
+                | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+                | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
+                | View.SYSTEM_UI_FLAG_FULLSCREEN
+            );
+        }
     }
 
     /**

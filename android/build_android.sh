@@ -265,13 +265,26 @@ sign_apk() {
     local SIGNED_APK="$ANDROID_DIR/app/build/outputs/apk/release/app-release.apk"
     local ALIGNED_APK="$ANDROID_DIR/app/build/outputs/apk/release/app-release-aligned.apk"
     
+    # Find the latest installed build-tools version
+    local BUILD_TOOLS_DIR="$ANDROID_SDK_ROOT/build-tools"
+    local BUILD_TOOLS_VERSION=""
+    if [ -d "$BUILD_TOOLS_DIR" ]; then
+        BUILD_TOOLS_VERSION=$(ls -1 "$BUILD_TOOLS_DIR" | sort -V | tail -1)
+    fi
+    
+    if [ -z "$BUILD_TOOLS_VERSION" ]; then
+        log_error "No Android build-tools found in $BUILD_TOOLS_DIR"
+        return 1
+    fi
+    
+    log_info "Using build-tools version: $BUILD_TOOLS_VERSION"
     log_info "Signing APK..."
     
     # Align the APK
-    "$ANDROID_SDK_ROOT/build-tools/34.0.0/zipalign" -v -p 4 "$UNSIGNED_APK" "$ALIGNED_APK"
+    "$ANDROID_SDK_ROOT/build-tools/$BUILD_TOOLS_VERSION/zipalign" -v -p 4 "$UNSIGNED_APK" "$ALIGNED_APK"
     
     # Sign with apksigner
-    "$ANDROID_SDK_ROOT/build-tools/34.0.0/apksigner" sign \
+    "$ANDROID_SDK_ROOT/build-tools/$BUILD_TOOLS_VERSION/apksigner" sign \
         --ks "$KEYSTORE_FILE" \
         --ks-pass "pass:$KEYSTORE_PASSWORD" \
         --ks-key-alias "$KEY_ALIAS" \

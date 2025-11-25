@@ -1,0 +1,251 @@
+name: Android Build
+
+on:
+  push:
+    branches: [ main, master ]
+    paths:
+      - 'src/**'
+      - 'include/**'
+      - 'android/**'
+      - '.github/workflows/android.yml'
+  pull_request:
+    branches: [ main, master ]
+    paths:
+      - 'src/**'
+      - 'include/**'
+      - 'android/**'
+      - '.github/workflows/android.yml'
+  workflow_dispatch:
+
+# Permissions for the GITHUB_TOKEN
+permissions:
+  contents: write
+
+env:
+  SDL2_VERSION: "2.28.5"
+  SDL2_IMAGE_VERSION: "2.8.2"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Set up JDK 17
+      uses: actions/setup-java@v4
+      with:
+        java-version: '17'
+        distribution: 'temurin'
+
+    - name: Setup Android SDK
+      uses: android-actions/setup-android@v3
+
+    - name: Install Android SDK components
+      run: |
+        sdkmanager --install "ndk;23.1.7779620"
+        sdkmanager --install "build-tools;34.0.0"
+        sdkmanager --install "platforms;android-34"
+        sdkmanager --install "cmake;3.22.1"
+
+    - name: Cache Gradle packages
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/.gradle/caches
+          ~/.gradle/wrapper
+        key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+        restore-keys: |
+          ${{ runner.os }}-gradle-
+
+    - name: Cache SDL2 libraries
+      uses: actions/cache@v4
+      with:
+        path: |
+          android/app/src/main/cpp/SDL2
+          android/app/src/main/cpp/SDL2_image
+          android/app/src/main/java/org/libsdl/app
+        key: ${{ runner.os }}-sdl2-${{ env.SDL2_VERSION }}-${{ env.SDL2_IMAGE_VERSION }}
+
+    - name: Download and Setup SDL2 for Android
+      run: |
+        cd android/app/src/main/cpp
+        
+        # Download SDL2 source
+        if [ ! -d "SDL2" ]; then
+          echo "Downloading SDL2 ${SDL2_VERSION}..."
+          curl -L -o SDL2.tar.gz "https://github.com/libsdl-org/SDL/releases/download/release-${SDL2_VERSION}/SDL2-${SDL2_VERSION}.tar.gz"
+          tar -xzf SDL2.tar.gz
+          mv "SDL2-${SDL2_VERSION}" SDL2-source
+          
+          # Setup SDL2 directory structure
+          mkdir -p SDL2/include SDL2/lib
+          cp -r SDL2-source/include/* SDL2/include/
+          
+          # Copy SDL Java files for Android
+          mkdir -p ../../java/org/libsdl/app
+          cp SDL2-source/android-project/app/src/main/java/org/libsdl/app/*.java ../../java/org/libsdl/app/
+          
+          rm SDL2.tar.gz
+        fi
+        
+        # Download SDL2_image source
+        if [ ! -d "SDL2_image" ]; then
+          echo "Downloading SDL2_image ${SDL2_IMAGE_VERSION}..."
+          curl -L -o SDL2_image.tar.gz "https://github.com/libsdl-org/SDL_image/releases/download/release-${SDL2_IMAGE_VERSION}/SDL2_image-${SDL2_IMAGE_VERSION}.tar.gz"
+          tar -xzf SDL2_image.tar.gz
+          mv "SDL2_image-${SDL2_IMAGE_VERSION}" SDL2_image-source
+          
+          mkdir -p SDL2_image/include SDL2_image/lib
+          cp SDL2_image-source/*.h SDL2_image/include/ 2>/dev/null || true
+          cp SDL2_image-source/include/*.h SDL2_image/include/ 2>/dev/null || true
+          
+          rm SDL2_image.tar.gz
+        fi
+
+    - name: Build SDL2 native libraries
+      run: |
+        cd android/app/src/main/cpp
+        
+        # Build SDL2 for each ABI using CMake
+        for ABI in armeabi-v7a arm64-v8a; do
+          if [ ! -f "SDL2/lib/$ABI/libSDL2.so" ] && [ -d "SDL2-source" ]; then
+            echo "Building SDL2 for $ABI..."
+            mkdir -p "SDL2-build-$ABI"
+            cd "SDL2-build-$ABI"
+            
+            cmake ../SDL2-source \
+              -DCMAKE_TOOLCHAIN_FILE=$ANDROID_NDK_HOME/build/cmake/android.toolchain.cmake \
+              -DANDROID_ABI=$ABI \
+              -DANDROID_PLATFORM=android-21 \
+              -DCMAKE_BUILD_TYPE=Release \
+              -DSDL_SHARED=ON \
+              -DSDL_STATIC=OFF
+            
+            cmake --build . --config Release -j$(nproc) || true
+            
+            cd ..
+            mkdir -p "SDL2/lib/$ABI"
+            find "SDL2-build-$ABI" -name "libSDL2.so" -exec cp {} "SDL2/lib/$ABI/" \; 2>/dev/null || true
+            rm -rf "SDL2-build-$ABI"
+          fi
+        done
+        
+        # Build SDL2_image for each ABI
+        for ABI in armeabi-v7a arm64-v8a; do
+          if [ ! -f "SDL2_image/lib/$ABI/libSDL2_image.so" ] && [ -d "SDL2_image-source" ]; then
+            echo "Building SDL2_image for $ABI..."
+            mkdir -p "SDL2_image-build-$ABI"
+            cd "SDL2_image-build-$ABI"
+            
+            # SDL2_image needs to know where SDL2 is
+            cmake ../SDL2_image-source \
+              -DCMAKE_TOOLCHAIN_FILE=$ANDROID_NDK_HOME/build/cmake/android.toolchain.cmake \
+              -DANDROID_ABI=$ABI \
+              -DANDROID_PLATFORM=android-21 \
+              -DCMAKE_BUILD_TYPE=Release \
+              -DSDL2_DIR=$(pwd)/../SDL2 \
+              -DSDL2IMAGE_SAMPLES=OFF \
+              -DSDL2IMAGE_TESTS=OFF \
+              -DBUILD_SHARED_LIBS=ON 2>/dev/null || true
+            
+            cmake --build . --config Release -j$(nproc) 2>/dev/null || true
+            
+            cd ..
+            mkdir -p "SDL2_image/lib/$ABI"
+            find "SDL2_image-build-$ABI" -name "libSDL2_image.so" -exec cp {} "SDL2_image/lib/$ABI/" \; 2>/dev/null || true
+            rm -rf "SDL2_image-build-$ABI"
+          fi
+        done
+        
+        # Cleanup source directories
+        rm -rf SDL2-source SDL2_image-source
+
+    - name: Grant execute permission for gradlew
+      run: chmod +x android/gradlew
+
+    - name: Build with Gradle
+      working-directory: android
+      run: |
+        ./gradlew assembleRelease --stacktrace
+
+    - name: Copy APK to repository root
+      run: |
+        # Find the built APK and copy it to root as Game.apk
+        APK_PATH=$(find android/app/build/outputs/apk/release -name "*.apk" | head -1)
+        if [ -n "$APK_PATH" ]; then
+          cp "$APK_PATH" Game.apk
+          echo "Copied APK to Game.apk"
+        fi
+
+    - name: Commit APK to repository
+      if: github.event_name == 'push'
+      run: |
+        git config --local user.email "github-actions[bot]@users.noreply.github.com"
+        git config --local user.name "github-actions[bot]"
+        git add Game.apk
+        git diff --staged --quiet || git commit -m "Update Game.apk [skip ci]"
+        git push
+
+    - name: Upload unsigned APK
+      uses: actions/upload-artifact@v4
+      with:
+        name: app-release-unsigned
+        path: android/app/build/outputs/apk/release/*.apk
+        if-no-files-found: error
+
+    - name: Sign APK (if secrets are available)
+      if: ${{ env.KEYSTORE_BASE64 != '' }}
+      env:
+        KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+        KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+        KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+        KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+      run: |
+        # Decode keystore
+        echo "$KEYSTORE_BASE64" | base64 -d > keystore.jks
+        
+        # Find the unsigned APK
+        UNSIGNED_APK=$(find android/app/build/outputs/apk/release -name "*.apk" | head -1)
+        ALIGNED_APK="android/app/build/outputs/apk/release/app-release-aligned.apk"
+        SIGNED_APK="android/app/build/outputs/apk/release/app-release-signed.apk"
+        
+        # Align APK
+        $ANDROID_SDK_ROOT/build-tools/34.0.0/zipalign -v -p 4 "$UNSIGNED_APK" "$ALIGNED_APK"
+        
+        # Sign APK
+        $ANDROID_SDK_ROOT/build-tools/34.0.0/apksigner sign \
+          --ks keystore.jks \
+          --ks-pass "pass:$KEYSTORE_PASSWORD" \
+          --ks-key-alias "$KEY_ALIAS" \
+          --key-pass "pass:$KEY_PASSWORD" \
+          --out "$SIGNED_APK" \
+          "$ALIGNED_APK"
+        
+        # Clean up
+        rm keystore.jks "$ALIGNED_APK"
+
+    - name: Upload signed APK
+      if: ${{ env.KEYSTORE_BASE64 != '' }}
+      uses: actions/upload-artifact@v4
+      env:
+        KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+      with:
+        name: app-release-signed
+        path: android/app/build/outputs/apk/release/app-release-signed.apk
+        if-no-files-found: warn
+
+    - name: Create release artifacts zip
+      run: |
+        mkdir -p release-artifacts
+        cp android/app/build/outputs/apk/release/*.apk release-artifacts/
+        cd release-artifacts
+        zip -r ../sdl-game-android-release.zip .
+
+    - name: Upload release artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: sdl-game-android-release
+        path: sdl-game-android-release.zip
+        if-no-files-found: warn

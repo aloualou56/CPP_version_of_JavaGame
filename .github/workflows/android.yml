@@ -62,40 +62,53 @@ jobs:
         restore-keys: |
           ${{ runner.os }}-gradle-
 
-    - name: Cache SDL2 libraries
+    - name: Cache SDL2 native libraries only
       uses: actions/cache@v4
       with:
         path: |
           android/app/src/main/cpp/SDL2
           android/app/src/main/cpp/SDL2_image
-          android/app/src/main/java/org/libsdl/app
-        key: ${{ runner.os }}-sdl2-${{ env.SDL2_VERSION }}-${{ env.SDL2_IMAGE_VERSION }}
+        key: ${{ runner.os }}-sdl2-v3-${{ env.SDL2_VERSION }}-${{ env.SDL2_IMAGE_VERSION }}
 
     - name: Download and Setup SDL2 for Android
       run: |
         cd android/app/src/main/cpp
         
-        # Download SDL2 source
-        if [ ! -d "SDL2" ]; then
-          echo "Downloading SDL2 ${SDL2_VERSION}..."
-          curl -L -o SDL2.tar.gz "https://github.com/libsdl-org/SDL/releases/download/release-${SDL2_VERSION}/SDL2-${SDL2_VERSION}.tar.gz"
-          tar -xzf SDL2.tar.gz
-          mv "SDL2-${SDL2_VERSION}" SDL2-source
-          
-          # Setup SDL2 directory structure
+        # Set up paths
+        SDL2_JAVA_DIR="../../java/org/libsdl/app"
+        
+        # ALWAYS download SDL2 and copy Java files (they're small and essential)
+        echo "=== Downloading SDL2 source for Java files ==="
+        rm -rf SDL2-source
+        curl -L -o SDL2.tar.gz "https://github.com/libsdl-org/SDL/releases/download/release-${SDL2_VERSION}/SDL2-${SDL2_VERSION}.tar.gz"
+        tar -xzf SDL2.tar.gz
+        mv "SDL2-${SDL2_VERSION}" SDL2-source
+        rm SDL2.tar.gz
+        
+        # ALWAYS copy SDL Java files (overwrite if exists)
+        echo "=== Copying SDL2 Java files ==="
+        rm -rf "$SDL2_JAVA_DIR"
+        mkdir -p "$SDL2_JAVA_DIR"
+        cp -v SDL2-source/android-project/app/src/main/java/org/libsdl/app/*.java "$SDL2_JAVA_DIR/"
+        
+        # Verify the copy
+        echo "=== Verifying SDL2 Java files ==="
+        ls -la "$SDL2_JAVA_DIR/"
+        
+        # Check if SDL2 native includes need to be set up (use cache)
+        if [ ! -d "SDL2/include" ]; then
+          echo "=== SDL2 includes not found, setting up ==="
           mkdir -p SDL2/include SDL2/lib
           cp -r SDL2-source/include/* SDL2/include/
-          
-          # Copy SDL Java files for Android
-          mkdir -p ../../java/org/libsdl/app
-          cp SDL2-source/android-project/app/src/main/java/org/libsdl/app/*.java ../../java/org/libsdl/app/
-          
-          rm SDL2.tar.gz
+        else
+          echo "=== SDL2 includes already cached ==="
         fi
         
-        # Download SDL2_image source
-        if [ ! -d "SDL2_image" ]; then
-          echo "Downloading SDL2_image ${SDL2_IMAGE_VERSION}..."
+        # Download SDL2_image source if not cached
+        if [ ! -d "SDL2_image/include" ]; then
+          echo "=== Downloading SDL2_image ==="
+          rm -rf SDL2_image-source
+          
           curl -L -o SDL2_image.tar.gz "https://github.com/libsdl-org/SDL_image/releases/download/release-${SDL2_IMAGE_VERSION}/SDL2_image-${SDL2_IMAGE_VERSION}.tar.gz"
           tar -xzf SDL2_image.tar.gz
           mv "SDL2_image-${SDL2_IMAGE_VERSION}" SDL2_image-source
@@ -105,7 +118,16 @@ jobs:
           cp SDL2_image-source/include/*.h SDL2_image/include/ 2>/dev/null || true
           
           rm SDL2_image.tar.gz
+        else
+          echo "=== SDL2_image includes already cached ==="
         fi
+        
+        # Final verification
+        echo "=== Final verification ==="
+        echo "SDL2 Java files:"
+        ls -la "$SDL2_JAVA_DIR/"
+        echo "SDL2 includes:"
+        ls SDL2/include/ | head -5
 
     - name: Build SDL2 native libraries
       run: |
@@ -142,18 +164,42 @@ jobs:
             mkdir -p "SDL2_image-build-$ABI"
             cd "SDL2_image-build-$ABI"
             
-            # SDL2_image needs to know where SDL2 is
+            # Get paths to SDL2 include and library directories
+            SDL2_INCLUDE_DIR=$(pwd)/../SDL2/include
+            SDL2_LIB_DIR=$(pwd)/../SDL2/lib/$ABI
+            
+            # SDL2_image needs to know where SDL2 is - use CMAKE_PREFIX_PATH and explicit include/lib paths
             cmake ../SDL2_image-source \
               -DCMAKE_TOOLCHAIN_FILE=$ANDROID_NDK_HOME/build/cmake/android.toolchain.cmake \
               -DANDROID_ABI=$ABI \
               -DANDROID_PLATFORM=android-21 \
               -DCMAKE_BUILD_TYPE=Release \
-              -DSDL2_DIR=$(pwd)/../SDL2 \
+              -DSDL2_INCLUDE_DIR=$SDL2_INCLUDE_DIR \
+              -DSDL2_LIBRARY=$SDL2_LIB_DIR/libSDL2.so \
               -DSDL2IMAGE_SAMPLES=OFF \
               -DSDL2IMAGE_TESTS=OFF \
-              -DBUILD_SHARED_LIBS=ON 2>/dev/null || true
+              -DSDL2IMAGE_DEPS_SHARED=OFF \
+              -DSDL2IMAGE_VENDORED=OFF \
+              -DSDL2IMAGE_AVIF=OFF \
+              -DSDL2IMAGE_BMP=ON \
+              -DSDL2IMAGE_GIF=OFF \
+              -DSDL2IMAGE_JPG=OFF \
+              -DSDL2IMAGE_JXL=OFF \
+              -DSDL2IMAGE_LBM=OFF \
+              -DSDL2IMAGE_PCX=OFF \
+              -DSDL2IMAGE_PNG=ON \
+              -DSDL2IMAGE_PNM=OFF \
+              -DSDL2IMAGE_QOI=OFF \
+              -DSDL2IMAGE_SVG=OFF \
+              -DSDL2IMAGE_TGA=OFF \
+              -DSDL2IMAGE_TIF=OFF \
+              -DSDL2IMAGE_WEBP=OFF \
+              -DSDL2IMAGE_XCF=OFF \
+              -DSDL2IMAGE_XPM=OFF \
+              -DSDL2IMAGE_XV=OFF \
+              -DBUILD_SHARED_LIBS=ON 2>&1 || echo "SDL2_image cmake configuration failed, continuing..."
             
-            cmake --build . --config Release -j$(nproc) 2>/dev/null || true
+            cmake --build . --config Release -j$(nproc) 2>&1 || echo "SDL2_image build failed, continuing..."
             
             cd ..
             mkdir -p "SDL2_image/lib/$ABI"

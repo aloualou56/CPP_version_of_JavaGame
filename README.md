@@ -14,6 +14,7 @@ A 2D game built with C++ and SDL2, featuring pixel-perfect collision detection a
 - [Collision Bug Fix](#collision-bug-fix)
 - [Visual Guide](#visual-guide)
 - [Building the Game](#building-the-game)
+- [Android (APK) Build](#android-apk-build)
 - [Distribution](#distribution)
 - [Technical Details](#technical-details)
 
@@ -263,6 +264,176 @@ cp /tmp/SDL2_image-2.8.2/x86_64-w64-mingw32/bin/*.dll .
 - Copy `Game.exe` and all `*.dll` files to a Windows machine
 - Ensure the `maps/` and `sprites/` directories are present
 - Run `Game.exe`
+
+---
+
+## 📱 Android (APK) Build
+
+This game can be built as an Android APK using the provided Android project scaffolding. The build uses SDL2 for Android and produces APKs for both `armeabi-v7a` and `arm64-v8a` architectures.
+
+### Prerequisites
+
+- **Android SDK** with API level 34
+- **Android NDK** r23.1.7779620
+- **CMake** 3.22.1 (installed via Android SDK)
+- **Java JDK** 17
+- **Gradle** 8.0 (wrapper included)
+
+### Build Locally with Android Studio
+
+1. **Install Android Studio** from [developer.android.com](https://developer.android.com/studio)
+
+2. **Open the project:**
+   - Launch Android Studio
+   - Select "Open an existing project"
+   - Navigate to and select the `android/` directory
+
+3. **Configure NDK:**
+   - Go to **File → Project Structure → SDK Location**
+   - Set Android NDK location (or let Android Studio download it)
+   - Required NDK version: `23.1.7779620`
+
+4. **Sync Gradle:**
+   - Click "Sync Project with Gradle Files" in the toolbar
+   - Wait for the sync to complete (SDL2 will be downloaded automatically)
+
+5. **Build the APK:**
+   - **Debug APK:** Run → Run 'app' (or press Shift+F10)
+   - **Release APK:** Build → Generate Signed Bundle / APK
+     - Select APK
+     - Create or use existing keystore
+     - Select release build variant
+     - APK will be in `android/app/build/outputs/apk/release/`
+
+### Build Locally from Command Line
+
+The `android/build_android.sh` script automates the command-line build process:
+
+```bash
+# Navigate to the android directory
+cd android
+
+# Make the build script executable
+chmod +x build_android.sh
+
+# Build a release APK (unsigned)
+./build_android.sh
+
+# Build a debug APK
+./build_android.sh --debug
+
+# Clean and rebuild
+./build_android.sh --clean
+
+# Build and sign the APK (requires keystore configuration)
+./build_android.sh --sign
+```
+
+**Manual Gradle build:**
+
+```bash
+cd android
+
+# Download SDL2 (first time only)
+./build_android.sh  # This downloads SDL2 automatically
+
+# Or use Gradle directly
+./gradlew assembleRelease
+
+# The APK will be at:
+# android/app/build/outputs/apk/release/app-release-unsigned.apk
+```
+
+**Environment Variables:**
+
+| Variable | Description |
+|----------|-------------|
+| `ANDROID_SDK_ROOT` | Path to Android SDK (auto-detected from common locations) |
+| `ANDROID_NDK_HOME` | Path to Android NDK (optional) |
+| `KEYSTORE_FILE` | Path to keystore for signing |
+| `KEYSTORE_PASSWORD` | Keystore password |
+| `KEY_ALIAS` | Key alias in keystore |
+| `KEY_PASSWORD` | Key password |
+
+### Build in CI (GitHub Actions)
+
+The repository includes a GitHub Actions workflow (`.github/workflows/android.yml`) that automatically builds the APK on every push to `main`/`master` or on pull requests.
+
+**Workflow Features:**
+- Builds for `armeabi-v7a` and `arm64-v8a`
+- Caches Gradle and SDL2 for faster builds
+- Uploads unsigned APK as artifact
+- Optionally signs APK if secrets are configured
+
+**To download the APK:**
+1. Go to the **Actions** tab in GitHub
+2. Click on the latest successful workflow run
+3. Download the `app-release-unsigned` artifact
+
+**To enable APK signing in CI:**
+
+1. **Create a keystore** (if you don't have one):
+   ```bash
+   keytool -genkey -v -keystore my-release-key.jks \
+     -keyalg RSA -keysize 2048 -validity 10000 \
+     -alias my-key-alias
+   ```
+
+2. **Encode keystore to base64:**
+   ```bash
+   base64 -i my-release-key.jks > keystore-base64.txt
+   ```
+
+3. **Add secrets to GitHub:**
+   - Go to your repository → Settings → Secrets and variables → Actions
+   - Add the following secrets:
+     - `KEYSTORE_BASE64`: Contents of `keystore-base64.txt`
+     - `KEYSTORE_PASSWORD`: Your keystore password
+     - `KEY_ALIAS`: Your key alias (e.g., `my-key-alias`)
+     - `KEY_PASSWORD`: Your key password
+
+4. **Delete local keystore files** (never commit them!):
+   ```bash
+   rm my-release-key.jks keystore-base64.txt
+   ```
+
+### Troubleshooting
+
+#### Common Issues
+
+| Issue | Solution |
+|-------|----------|
+| **NDK not found** | Install via SDK Manager: `sdkmanager --install "ndk;23.1.7779620"` |
+| **CMake not found** | Install via SDK Manager: `sdkmanager --install "cmake;3.22.1"` |
+| **SDL2 download fails** | Check internet connection; manually download from [SDL2 releases](https://github.com/libsdl-org/SDL/releases) |
+| **Build fails with "ABI not found"** | Ensure NDK is installed for required ABIs |
+| **App crashes on startup** | Check logcat for errors; verify all assets are packaged |
+| **Audio not working** | SDL2 audio requires proper Android permissions and initialization |
+| **Touch input issues** | Verify SDL event handling for Android touch events |
+
+#### Checking Logs
+
+```bash
+# Connect device and view logs
+adb logcat | grep -E "(SDLGame|SDL|libSDL)"
+
+# Or in Android Studio: View → Tool Windows → Logcat
+```
+
+#### Asset Packaging
+
+Game assets (maps, sprites) are packaged from the root directories. If assets are missing:
+
+1. Verify `android/app/build.gradle` has correct asset paths:
+   ```gradle
+   sourceSets {
+       main {
+           assets.srcDirs = ['src/main/assets', '../../maps', '../../sprites']
+       }
+   }
+   ```
+
+2. Check that asset files exist and are not gitignored
 
 ---
 

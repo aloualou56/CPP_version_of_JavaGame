@@ -17,6 +17,8 @@ class SpriteComponent : public Component {
       SDL_Texture *texture;
       SDL_Rect srcRect, destRect;
   std::string texturePath;
+      // Anchor (pixels from top) used to compute draw order — defaults to sprite bottom
+      int anchorY = 0;
 
     public:
       
@@ -32,7 +34,10 @@ class SpriteComponent : public Component {
       bool isDrawable() override { return true; }
       // Χρησιμοποιεί το κάτω μέρος του προορισμού (destRect) ώστε οι οντότητες να ταξινομούνται με βάση τα πόδια
       // (αποτρέπει τους χαρακτήρες να σχεδιάζονται πίσω από αντικείμενα που επικαλύπτουν το κάτω τμήμα τους)
-      int drawOrder() override { return destRect.y + destRect.h; }
+      int drawOrder() override { return destRect.y + anchorY; }
+
+      // Επιτρέπει να ρυθμιστεί η κάθετη άγκυρα (σε pixels από την κορυφή της εικόνας)
+      void setAnchorY(int a) { anchorY = a; }
 };
 
 #endif

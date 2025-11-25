@@ -362,13 +362,19 @@ The repository includes a GitHub Actions workflow (`.github/workflows/android.ym
 **Workflow Features:**
 - Builds for `armeabi-v7a` and `arm64-v8a`
 - Caches Gradle and SDL2 for faster builds
-- Uploads unsigned APK as artifact
-- Optionally signs APK if secrets are configured
+- **Always signs the APK** (uses debug keystore if no secrets are configured)
+- Commits signed `Game.apk` to the repository for easy download
+- Uploads signed APK as artifact
 
-**To download the APK:**
+**To install the APK:**
+1. Download `Game.apk` directly from the repository root
+2. Install on your Android device using `adb install Game.apk`
+3. The APK is already signed and ready to install
+
+**To download from Actions:**
 1. Go to the **Actions** tab in GitHub
 2. Click on the latest successful workflow run
-3. Download the `app-release-unsigned` artifact
+3. Download the `app-release-signed` artifact
 
 **To enable APK signing in CI:**
 

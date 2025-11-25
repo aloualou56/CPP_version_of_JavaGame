@@ -1,8 +1,11 @@
 #ifndef TextureManager_hpp
 #define TextureManager_hpp
 
-#include "Game.hpp"
+#include <Game.hpp>
 
+#include <string>
+#include <map>
+#include <mutex>
 class TextureManager {
 
     public:
@@ -10,6 +13,14 @@ class TextureManager {
   static void SetTotalToLoad(int total);
   static int GetLoadedCount();
   static int GetTotalToLoad();
+  // Register an externally-created texture under a key so the manager
+  // owns and will free it on ClearCache/exit. Useful for procedurally
+  // generated textures created at runtime.
+  static void RegisterTexture(const char* key, SDL_Texture* tex);
+  // Retrieve a registered/cached texture (or nullptr)
+  static SDL_Texture* GetTexture(const char* key);
+  // Destroy and clear all cached textures
+  static void ClearCache();
   // Scan image and return the lowest non-transparent row (pixel Y from top), or -1 on error
   static int DetectBottomOpaqueRow(const char* fileName);
     // Return an override anchor row (in pixels from top) for given file, or -1 if none

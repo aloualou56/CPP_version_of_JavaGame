@@ -1,8 +1,8 @@
 #ifndef AnimationComponent_hpp
 #define AnimationComponent_hpp
 
-#include "ECS.hpp"
-#include "PositionComponent.hpp"
+#include <ECS/ECS.hpp>
+#include <ECS/PositionComponent.hpp>
 #include "SDL.h"
 #include <map>
 #include <vector>

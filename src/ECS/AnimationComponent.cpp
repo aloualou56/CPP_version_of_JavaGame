@@ -1,16 +1,12 @@
-#include "AnimationComponent.hpp"
-#include "PositionComponent.hpp"
-#include "../TextureManager.hpp"
-#include "../Game.hpp"
-#include "../Camera.hpp"
-#include "ECS.hpp"
+#include <ECS/AnimationComponent.hpp>
+#include <ECS/PositionComponent.hpp>
+#include <TextureManager.hpp>
+#include <Game.hpp>
+#include <Camera.hpp>
+#include <ECS/ECS.hpp>
 
 AnimationComponent::~AnimationComponent() {
-    for (auto& anim : animations) {
-        for (auto* tex : anim.second) {
-            SDL_DestroyTexture(tex);
-        }
-    }
+    // Textures are owned by TextureManager cache; do not destroy here.
     animations.clear();
 }
 

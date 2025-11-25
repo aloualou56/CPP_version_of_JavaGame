@@ -1,7 +1,7 @@
-#include "PositionComponent.hpp"
-#include "../Game.hpp"
-#include "../Collision.hpp"
-#include "ColliderComponent.hpp"
+#include <ECS/PositionComponent.hpp>
+#include <Game.hpp>
+#include <Collision.hpp>
+#include <ECS/ColliderComponent.hpp>
 
 void PositionComponent::update() {
     // Αποθηκεύει την παλιά θέση

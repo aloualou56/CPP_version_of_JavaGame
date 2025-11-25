@@ -1,8 +1,8 @@
 #ifndef SpriteComponent_hpp
 #define SpriteComponent_hpp
 
-#include "ECS.hpp"
-#include "PositionComponent.hpp"
+#include <ECS/ECS.hpp>
+#include <ECS/PositionComponent.hpp>
 #include "SDL.h"
 #include <iostream>
 

@@ -14,4 +14,4 @@
 -keep class org.libsdl.app.** { *; }
 
 # Keep the game activity
--keep class com.game.sdlgame.** { *; }
+-keep class com.aloualou.cppgame.** { *; }

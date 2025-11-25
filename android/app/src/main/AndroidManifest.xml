@@ -23,7 +23,7 @@
 
         <!-- Main SDL Activity -->
         <activity
-            android:name=".SDLGameActivity"
+            android:name="com.aloualou.cppgame.SDLGameActivity"
             android:label="@string/app_name"
             android:configChanges="keyboard|keyboardHidden|orientation|screenSize|screenLayout|uiMode|density"
             android:screenOrientation="landscape"

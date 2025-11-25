@@ -43,16 +43,19 @@ Game::Game() {
 Game::~Game() {
 
 }
-
+        SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "SDL_Init succeeded");
+        std::cout << "Sub initialised...." << std::endl;
 void Game::init(const char *title, int xpos, int ypos, int width, int height, bool fullscreen) {
     int flags = 0;
-    if(fullscreen) {
+            SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "Window created successfully");
+            std::cout << "Window created successfully" << std::endl;
         flags = SDL_WINDOW_FULLSCREEN;
     }
 
     if(SDL_Init(SDL_INIT_EVERYTHING) == 0) {
-        std::cout << "Sub initialised...." << std::endl;
-        window = SDL_CreateWindow(title, xpos, ypos, width, height, flags);
+            SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
+            SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "Renderer created successfully");
+            std::cout << "Renderer created successfully" << std::endl; 
         if(window) {
             std::cout << "Window created successfully" << std::endl;
         }
@@ -75,8 +78,10 @@ void Game::init(const char *title, int xpos, int ypos, int width, int height, bo
             // a smaller dark bar inside to look like a progress area
             SDL_SetRenderDrawColor(renderer, 40, 40, 40, 255);
             SDL_Rect inner{ width/2 - 110, height/2 - 10, 220, 20 };
+        SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "Finished initial window/renderer setup");
             SDL_RenderFillRect(renderer, &inner);
-            SDL_RenderPresent(renderer);
+        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "SDL_Init failed: %s", SDL_GetError());
+        isRunning = false;
             SDL_Delay(50); // give OS a moment to present the window
             SDL_PumpEvents();
         }

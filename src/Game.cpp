@@ -5,6 +5,9 @@
 #include "EnvironmentAssets.hpp"
 #include "HUD.hpp"
 
+#include <cstdlib>
+#include <filesystem>
+
 #include "ECS/ECS.hpp"
 #include "ECS/Componets.hpp"
 #include "Vector2D.hpp"
@@ -53,6 +56,27 @@ void Game::init(const char *title, int xpos, int ypos, int width, int height, bo
             std::cout << "Renderer created successfully" << std::endl; 
         }
 
+        // Show a simple loading screen so the window appears responsive while textures load
+        if (renderer) {
+            // black background
+            SDL_SetRenderDrawColor(renderer, 20, 20, 20, 255);
+            SDL_RenderClear(renderer);
+            // simple white loading bar box in center
+            SDL_SetRenderDrawColor(renderer, 200, 200, 200, 255);
+            SDL_Rect box{ width/2 - 120, height/2 - 20, 240, 40 };
+            SDL_RenderFillRect(renderer, &box);
+            // a smaller dark bar inside to look like a progress area
+            SDL_SetRenderDrawColor(renderer, 40, 40, 40, 255);
+            SDL_Rect inner{ width/2 - 110, height/2 - 10, 220, 20 };
+            SDL_RenderFillRect(renderer, &inner);
+            SDL_RenderPresent(renderer);
+            SDL_Delay(50); // give OS a moment to present the window
+            SDL_PumpEvents();
+        }
+
+        // seed RNG for particle randomness
+        srand((unsigned int)SDL_GetTicks());
+
         isRunning = true;
     } else {
         isRunning = false;
@@ -67,6 +91,21 @@ void Game::init(const char *title, int xpos, int ypos, int width, int height, bo
     Game::managerPtr = &manager;
     
     // Αρχικοποιεί τα περιβαλλοντικά assets (κόσμος 50x50, πλακίδια 96px)
+    // Before creating many textures, scan sprite folder to estimate work for loading screen
+    namespace fs = std::filesystem;
+    int pngCount = 0;
+    try {
+        for (auto &p : fs::recursive_directory_iterator("sprites")) {
+            if (!p.is_regular_file()) continue;
+            auto ext = p.path().extension().string();
+            for (auto &c : ext) c = (char)tolower(c);
+            if (ext == ".png" || ext == ".bmp" || ext == ".jpg") pngCount++;
+        }
+    } catch (...) {
+        pngCount = 0;
+    }
+    if (pngCount > 0) TextureManager::SetTotalToLoad(pngCount);
+
     environmentAssets = new EnvironmentAssets(&manager, 50, 50, 96);
     environmentAssets->generateEnvironment();
 
@@ -182,9 +221,16 @@ void Game::update() {
 }
 
 void Game::clean() {
+    // Ensure all managed entities are destroyed while SDL is still valid
+    for (const auto &eptr : manager.getEntities()) {
+        if (eptr) eptr->destroy();
+    }
+    manager.refresh();
+
     if (this->hud) { delete this->hud; this->hud = nullptr; }
-    SDL_DestroyWindow(window);
+    // Destroy renderer and window after components/textures have been freed
     SDL_DestroyRenderer(renderer);
+    SDL_DestroyWindow(window);
     delete map;
     delete camera;
     delete environmentAssets;

@@ -48,6 +48,9 @@ jobs:
         sdkmanager --install "build-tools;34.0.0"
         sdkmanager --install "platforms;android-34"
         sdkmanager --install "cmake;3.22.1"
+        # Set ANDROID_NDK_HOME to use the installed NDK version (23.x) instead of the default (27.x)
+        # This is required because SDL2 2.28.5 uses ALooper_pollAll which is unavailable in NDK 27+
+        echo "ANDROID_NDK_HOME=$ANDROID_SDK_ROOT/ndk/23.1.7779620" >> $GITHUB_ENV
 
     - name: Cache Gradle packages
       uses: actions/cache@v4

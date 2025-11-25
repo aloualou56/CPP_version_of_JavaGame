@@ -1,5 +1,5 @@
-#include "ParticleComponent.hpp"
-#include "ECS.hpp"
+#include <ECS/ParticleComponent.hpp>
+#include <ECS/ECS.hpp>
 #include <SDL.h>
 
 ParticleComponent::ParticleComponent(float lifeMs, float vx, float vy, float damp) {

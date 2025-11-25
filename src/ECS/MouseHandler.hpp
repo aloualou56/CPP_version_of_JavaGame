@@ -1,9 +1,9 @@
 #ifndef MouseHandler_hpp
 #define MouseHandler_hpp
 
-#include "../Game.hpp"
-#include "ECS.hpp"
-#include "PositionComponent.hpp"
+#include <Game.hpp>
+#include <ECS/ECS.hpp>
+#include <ECS/PositionComponent.hpp>
 
 class MouseHandler : public Component {
 public:

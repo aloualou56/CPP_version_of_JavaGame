@@ -1,12 +1,12 @@
 #ifndef Keyboard_hpp
 #define Keyboard_hpp
 
-#include "../Game.hpp"
-#include "ECS.hpp"
-#include "PositionComponent.hpp"
-#include "AnimationComponent.hpp"
-#include "../TextureManager.hpp"
-#include "ParticleComponent.hpp"
+#include <Game.hpp>
+#include <ECS/ECS.hpp>
+#include <ECS/PositionComponent.hpp>
+#include <ECS/AnimationComponent.hpp>
+#include <TextureManager.hpp>
+#include <ECS/ParticleComponent.hpp>
 
 class Keyboard : public Component {
     public:

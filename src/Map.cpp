@@ -1,5 +1,5 @@
-#include "Map.hpp"
-#include "TextureManager.hpp"
+#include <Map.hpp>
+#include <TextureManager.hpp>
 #include <fstream>
 #include <sstream>
 #include <iostream>
@@ -28,10 +28,7 @@ Map::Map() {
 }
 
 Map::~Map() {
-    SDL_DestroyTexture(grass);
-    SDL_DestroyTexture(dirt);
-    SDL_DestroyTexture(water);
-    SDL_DestroyTexture(stone);
+    // Textures are cached and owned by TextureManager; do not destroy here.
 }
 
 void Map::loadMapFromFile(const std::string& filepath) {

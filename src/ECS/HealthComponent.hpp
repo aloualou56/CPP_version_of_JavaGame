@@ -1,7 +1,7 @@
 #ifndef HealthComponent_hpp
 #define HealthComponent_hpp
 
-#include "ECS.hpp"
+#include <ECS/ECS.hpp>
 
 class HealthComponent : public Component {
 public:

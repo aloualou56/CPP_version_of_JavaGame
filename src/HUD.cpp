@@ -1,23 +1,18 @@
 // Clean HUD implementation: loads (or generates) 5 PNG heart assets and renders fractional hearts
-#include "HUD.hpp"
-#include "Game.hpp"
-#include "TextureManager.hpp"
+#include <HUD.hpp>
+#include <Game.hpp>
+#include <TextureManager.hpp>
 #include <filesystem>
 #include <vector>
 #include <cmath>
 
-// include stb_image_write implementation here so we can save generated PNGs
-#define STB_IMAGE_WRITE_IMPLEMENTATION
+// include stb_image_write header here so we can save generated PNGs
 #include "stb_image_write.h"
 
 HUD::HUD() {}
 
 HUD::~HUD() {
-    if (heartFull) SDL_DestroyTexture(heartFull);
-    if (heart3q) SDL_DestroyTexture(heart3q);
-    if (heartHalf) SDL_DestroyTexture(heartHalf);
-    if (heart1q) SDL_DestroyTexture(heart1q);
-    if (heartEmpty) SDL_DestroyTexture(heartEmpty);
+    // Textures are owned by TextureManager cache; do not destroy here.
 }
 
 static SDL_Texture* createTextureFromRGBA(int w, int h, const std::vector<unsigned char>& buf) {
@@ -52,12 +47,7 @@ void HUD::init(int maxH) {
         return;
     }
 
-    // Free any partially loaded textures
-    if (heartFull) { SDL_DestroyTexture(heartFull); heartFull = nullptr; }
-    if (heart3q) { SDL_DestroyTexture(heart3q); heart3q = nullptr; }
-    if (heartHalf) { SDL_DestroyTexture(heartHalf); heartHalf = nullptr; }
-    if (heart1q) { SDL_DestroyTexture(heart1q); heart1q = nullptr; }
-    if (heartEmpty) { SDL_DestroyTexture(heartEmpty); heartEmpty = nullptr; }
+    // Do not free partially loaded textures here; TextureManager owns cached textures.
 
     // Generate pixel-art hearts in memory and save them as PNGs
     const int patternW = 9;
@@ -139,11 +129,12 @@ void HUD::init(int maxH) {
     std::vector<unsigned char> buf1q  = gen_buffer(1);
     std::vector<unsigned char> bufE   = gen_buffer(0);
 
-    heartFull  = createTextureFromRGBA(w,h,bufFull);
-    heart3q    = createTextureFromRGBA(w,h,buf3q);
-    heartHalf  = createTextureFromRGBA(w,h,bufHalf);
-    heart1q    = createTextureFromRGBA(w,h,buf1q);
-    heartEmpty = createTextureFromRGBA(w,h,bufE);
+    // Create any missing textures and register them in the TextureManager cache
+    if (!heartFull)  heartFull  = createTextureFromRGBA(w,h,bufFull);
+    if (!heart3q)    heart3q    = createTextureFromRGBA(w,h,buf3q);
+    if (!heartHalf)  heartHalf  = createTextureFromRGBA(w,h,bufHalf);
+    if (!heart1q)    heart1q    = createTextureFromRGBA(w,h,buf1q);
+    if (!heartEmpty) heartEmpty = createTextureFromRGBA(w,h,bufE);
 
     // Save to PNG files so you have editable assets on disk
     stbi_write_png((basePath + names[0]).c_str(), w, h, 4, bufFull.data(), w*4);
@@ -151,6 +142,13 @@ void HUD::init(int maxH) {
     stbi_write_png((basePath + names[2]).c_str(), w, h, 4, bufHalf.data(), w*4);
     stbi_write_png((basePath + names[3]).c_str(), w, h, 4, buf1q.data(), w*4);
     stbi_write_png((basePath + names[4]).c_str(), w, h, 4, bufE.data(), w*4);
+
+    // Register generated textures so TextureManager owns them
+    TextureManager::RegisterTexture((basePath + names[0]).c_str(), heartFull);
+    TextureManager::RegisterTexture((basePath + names[1]).c_str(), heart3q);
+    TextureManager::RegisterTexture((basePath + names[2]).c_str(), heartHalf);
+    TextureManager::RegisterTexture((basePath + names[3]).c_str(), heart1q);
+    TextureManager::RegisterTexture((basePath + names[4]).c_str(), heartEmpty);
 
     texturesLoaded = true;
 }
@@ -197,16 +195,15 @@ void HUD::render() {
         }
     }
 }
-#include "HUD.hpp"
-#include "Game.hpp"
+#include <HUD.hpp>
+#include <Game.hpp>
 
 HUD::HUD() {
 
 }
 
 HUD::~HUD() {
-    if (heartFull) SDL_DestroyTexture(heartFull);
-    if (heartEmpty) SDL_DestroyTexture(heartEmpty);
+    // Textures owned by TextureManager; do not destroy here.
 }
 
 void HUD::init(int maxH) {
@@ -224,9 +221,7 @@ void HUD::init(int maxH) {
         return;
     }
 
-    // Free any partially loaded textures
-    if (heartFull) { SDL_DestroyTexture(heartFull); heartFull = nullptr; }
-    if (heartEmpty) { SDL_DestroyTexture(heartEmpty); heartEmpty = nullptr; }
+    // Do not free partially loaded textures here; TextureManager owns cached textures.
 
     // Generate pixel-art heart textures into SDL_Textures so they match the game's aesthetic
     const int patternW = 9;
@@ -246,8 +241,8 @@ void HUD::init(int maxH) {
     // create textures with render target so we can draw into them
     SDL_Texture* genFull = SDL_CreateTexture(Game::renderer, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_TARGET, heartSize, heartSize);
     SDL_Texture* genEmpty = SDL_CreateTexture(Game::renderer, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_TARGET, heartSize, heartSize);
-    #include "HUD.hpp"
-    #include "Game.hpp"
+    #include <HUD.hpp>
+    #include <Game.hpp>
     #include <filesystem>
     #include <vector>
     #include "stb_image_write.h"
@@ -255,11 +250,7 @@ void HUD::init(int maxH) {
     HUD::HUD() {}
 
     HUD::~HUD() {
-        if (heartFull) SDL_DestroyTexture(heartFull);
-        if (heart3q) SDL_DestroyTexture(heart3q);
-        if (heartHalf) SDL_DestroyTexture(heartHalf);
-        if (heart1q) SDL_DestroyTexture(heart1q);
-        if (heartEmpty) SDL_DestroyTexture(heartEmpty);
+        // Textures are managed by TextureManager; don't destroy here.
     }
 
     static bool file_exists(const std::string &p) {
@@ -299,12 +290,7 @@ void HUD::init(int maxH) {
             return;
         }
 
-        // Destroy any partially loaded textures
-        if (heartFull) { SDL_DestroyTexture(heartFull); heartFull = nullptr; }
-        if (heart3q) { SDL_DestroyTexture(heart3q); heart3q = nullptr; }
-        if (heartHalf) { SDL_DestroyTexture(heartHalf); heartHalf = nullptr; }
-        if (heart1q) { SDL_DestroyTexture(heart1q); heart1q = nullptr; }
-        if (heartEmpty) { SDL_DestroyTexture(heartEmpty); heartEmpty = nullptr; }
+        // Do not destroy partially loaded textures here; TextureManager owns cached textures.
 
         // Generate pixel-art versions for each fraction and save to PNG files
         const int patternW = 9;

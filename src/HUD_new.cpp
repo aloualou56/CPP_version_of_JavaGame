@@ -1,22 +1,17 @@
-#include "HUD.hpp"
-#include "Game.hpp"
-#include "TextureManager.hpp"
-#include "ECS/HealthComponent.hpp"
+#include <HUD.hpp>
+#include <Game.hpp>
+#include <TextureManager.hpp>
+#include <ECS/HealthComponent.hpp>
 #include <filesystem>
 #include <vector>
 #include <cmath>
 
-#define STB_IMAGE_WRITE_IMPLEMENTATION
 #include "stb_image_write.h"
 
 HUD::HUD() {}
 
 HUD::~HUD() {
-    if (heartFull) SDL_DestroyTexture(heartFull);
-    if (heart3q) SDL_DestroyTexture(heart3q);
-    if (heartHalf) SDL_DestroyTexture(heartHalf);
-    if (heart1q) SDL_DestroyTexture(heart1q);
-    if (heartEmpty) SDL_DestroyTexture(heartEmpty);
+    // Textures are owned by TextureManager cache. Do not free here.
 }
 
 static SDL_Texture* createTextureFromRGBA(int w, int h, const std::vector<unsigned char>& buf) {
@@ -50,11 +45,8 @@ void HUD::init(int maxH) {
         return;
     }
 
-    if (heartFull) { SDL_DestroyTexture(heartFull); heartFull = nullptr; }
-    if (heart3q) { SDL_DestroyTexture(heart3q); heart3q = nullptr; }
-    if (heartHalf) { SDL_DestroyTexture(heartHalf); heartHalf = nullptr; }
-    if (heart1q) { SDL_DestroyTexture(heart1q); heart1q = nullptr; }
-    if (heartEmpty) { SDL_DestroyTexture(heartEmpty); heartEmpty = nullptr; }
+    // For any missing textures, we'll procedurally generate them below. Do not destroy
+    // textures that were successfully loaded from disk; TextureManager owns them.
 
     const int patternW = 9;
     const int patternH = 8;
@@ -120,11 +112,26 @@ void HUD::init(int maxH) {
     std::vector<unsigned char> buf1q  = gen_buffer(1);
     std::vector<unsigned char> bufE   = gen_buffer(0);
 
-    heartFull  = createTextureFromRGBA(w,h,bufFull);
-    heart3q    = createTextureFromRGBA(w,h,buf3q);
-    heartHalf  = createTextureFromRGBA(w,h,bufHalf);
-    heart1q    = createTextureFromRGBA(w,h,buf1q);
-    heartEmpty = createTextureFromRGBA(w,h,bufE);
+    // Create textures for any that are missing and register them with TextureManager
+    if (!heartFull)  heartFull  = createTextureFromRGBA(w,h,bufFull);
+    if (!heart3q)    heart3q    = createTextureFromRGBA(w,h,buf3q);
+    if (!heartHalf)  heartHalf  = createTextureFromRGBA(w,h,bufHalf);
+    if (!heart1q)    heart1q    = createTextureFromRGBA(w,h,buf1q);
+    if (!heartEmpty) heartEmpty = createTextureFromRGBA(w,h,bufE);
+
+    // Write files to disk (so future runs can load them) and register generated textures
+    stbi_write_png((basePath + names[0]).c_str(), w, h, 4, bufFull.data(), w*4);
+    stbi_write_png((basePath + names[1]).c_str(), w, h, 4, buf3q.data(), w*4);
+    stbi_write_png((basePath + names[2]).c_str(), w, h, 4, bufHalf.data(), w*4);
+    stbi_write_png((basePath + names[3]).c_str(), w, h, 4, buf1q.data(), w*4);
+    stbi_write_png((basePath + names[4]).c_str(), w, h, 4, bufE.data(), w*4);
+
+    // Register textures in TextureManager so they are owned and freed centrally
+    TextureManager::RegisterTexture((basePath + names[0]).c_str(), heartFull);
+    TextureManager::RegisterTexture((basePath + names[1]).c_str(), heart3q);
+    TextureManager::RegisterTexture((basePath + names[2]).c_str(), heartHalf);
+    TextureManager::RegisterTexture((basePath + names[3]).c_str(), heart1q);
+    TextureManager::RegisterTexture((basePath + names[4]).c_str(), heartEmpty);
 
     stbi_write_png((basePath + names[0]).c_str(), w, h, 4, bufFull.data(), w*4);
     stbi_write_png((basePath + names[1]).c_str(), w, h, 4, buf3q.data(), w*4);

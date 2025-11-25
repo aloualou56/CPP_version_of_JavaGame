@@ -3,12 +3,12 @@
 
 #include <string>
 #include "SDL.h"
-#include "ECS.hpp"
-#include "PositionComponent.hpp"
-#include "SpriteComponent.hpp"
-#include "AnimationComponent.hpp"
-#include "../ImageMask.hpp"
-#include "../Camera.hpp"
+#include <ECS/ECS.hpp>
+#include <ECS/PositionComponent.hpp>
+#include <ECS/SpriteComponent.hpp>
+#include <ECS/AnimationComponent.hpp>
+#include <ImageMask.hpp>
+#include <Camera.hpp>
 
 class ColliderComponent : public Component {
     public:

@@ -75,22 +75,42 @@ jobs:
       run: |
         cd android/app/src/main/cpp
         
-        # Download SDL2 source
+        # Always ensure SDL2 Java files exist (they might not be in cache)
+        SDL2_JAVA_DIR="../../java/org/libsdl/app"
+        NEED_SDL2_SOURCE=false
+        
+        # Check if SDL2 Java files exist
+        if [ ! -f "$SDL2_JAVA_DIR/SDLActivity.java" ]; then
+          echo "SDL2 Java files not found, need to download SDL2 source..."
+          NEED_SDL2_SOURCE=true
+        fi
+        
+        # Check if SDL2 native libraries need to be built
         if [ ! -d "SDL2" ]; then
+          echo "SDL2 directory not found, need to download SDL2 source..."
+          NEED_SDL2_SOURCE=true
+        fi
+        
+        # Download SDL2 source if needed
+        if [ "$NEED_SDL2_SOURCE" = true ] && [ ! -d "SDL2-source" ]; then
           echo "Downloading SDL2 ${SDL2_VERSION}..."
           curl -L -o SDL2.tar.gz "https://github.com/libsdl-org/SDL/releases/download/release-${SDL2_VERSION}/SDL2-${SDL2_VERSION}.tar.gz"
           tar -xzf SDL2.tar.gz
           mv "SDL2-${SDL2_VERSION}" SDL2-source
-          
-          # Setup SDL2 directory structure
+          rm SDL2.tar.gz
+        fi
+        
+        # Setup SDL2 includes if needed
+        if [ ! -d "SDL2" ] && [ -d "SDL2-source" ]; then
           mkdir -p SDL2/include SDL2/lib
           cp -r SDL2-source/include/* SDL2/include/
-          
-          # Copy SDL Java files for Android
-          mkdir -p ../../java/org/libsdl/app
-          cp SDL2-source/android-project/app/src/main/java/org/libsdl/app/*.java ../../java/org/libsdl/app/
-          
-          rm SDL2.tar.gz
+        fi
+        
+        # Copy SDL Java files for Android if they don't exist
+        if [ ! -f "$SDL2_JAVA_DIR/SDLActivity.java" ] && [ -d "SDL2-source" ]; then
+          echo "Copying SDL2 Java files..."
+          mkdir -p "$SDL2_JAVA_DIR"
+          cp SDL2-source/android-project/app/src/main/java/org/libsdl/app/*.java "$SDL2_JAVA_DIR/"
         fi
         
         # Download SDL2_image source

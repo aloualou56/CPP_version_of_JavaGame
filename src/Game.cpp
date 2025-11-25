@@ -6,6 +6,7 @@
 #include <HUD.hpp>
 
 #include <cstdlib>
+#include <iostream>
 #include <filesystem>
 
 #include <ECS/ECS.hpp>

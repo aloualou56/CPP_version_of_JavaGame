@@ -31,21 +31,25 @@ static Game* game = nullptr;
  */
 extern "C" int main(int argc, char* argv[]) {
     LOGI("Starting SDL Game...");
+    LOGI("SDL Version: %d.%d.%d", SDL_MAJOR_VERSION, SDL_MINOR_VERSION, SDL_PATCHLEVEL);
     
     const int FrameDelay = 1000 / FPS;
     Uint32 frameStart;
     int frametime;
     
     // Create game instance
+    LOGI("Creating game instance...");
     game = new Game();
     
     // Initialize with Android-appropriate window settings
     // SDL_WINDOWPOS_UNDEFINED lets SDL choose the position
-    // Window size will be overridden by Android's display
+    // Using 0, 0 for window size lets SDL automatically use the device's native resolution
+    // This fixes gray screen issues on some Android devices with non-standard resolutions
+    LOGI("Calling game->init() with window size 0x0 (native resolution)...");
     game->init("SDL Game", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, 
-               768, 576, false);
+               0, 0, false);
     
-    LOGI("Game initialized, entering main loop...");
+    LOGI("Game initialized successfully, entering main loop...");
     
     // Main game loop
     while (game->running()) {

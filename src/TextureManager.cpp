@@ -1,14 +1,70 @@
-#include "TextureManager.hpp"
+#include <TextureManager.hpp>
 #include <unordered_map>
 #include <cctype>
 #include <atomic>
 #include <SDL.h>
+#include <map>
+#include <string>
+#include <mutex>
 
 // Progress counters for loading screen
 static std::atomic<int> g_totalToLoad{0};
 static std::atomic<int> g_loadedCount{0};
 
+// Simple texture cache owned by TextureManager. Keys are the file-paths
+// or arbitrary strings supplied by RegisterTexture.
+static std::map<std::string, SDL_Texture*> g_textureCache;
+static std::mutex g_cacheMutex;
+
 SDL_Texture* TextureManager::LoadTexture(const char* texture) {
+
+    std::string key = texture ? std::string(texture) : std::string();
+    // If cached, return immediately
+    {
+        std::lock_guard<std::mutex> lk(g_cacheMutex);
+        auto it = g_textureCache.find(key);
+        if (it != g_textureCache.end()) {
+            // Update progress counters (if enabled) for compatibility with previous behavior
+            if (g_totalToLoad > 0) {
+                ++g_loadedCount;
+                if (Game::renderer) {
+                    int total = static_cast<int>(g_totalToLoad.load());
+                    int loaded = static_cast<int>(g_loadedCount.load());
+                    float pct = total > 0 ? (float)loaded / (float)total : 1.0f;
+                    if (pct < 0.0f) pct = 0.0f;
+                    if (pct > 1.0f) pct = 1.0f;
+                    int w = 240, h = 20;
+                    int winW = 800, winH = 600;
+                    SDL_GetRendererOutputSize(Game::renderer, &winW, &winH);
+                    SDL_SetRenderDrawBlendMode(Game::renderer, SDL_BLENDMODE_NONE);
+                    SDL_SetRenderDrawColor(Game::renderer, 20, 20, 20, 255);
+                    SDL_RenderClear(Game::renderer);
+                    SDL_SetRenderDrawColor(Game::renderer, 200, 200, 200, 255);
+                    SDL_Rect box{ winW/2 - w/2, winH/2 - h/2, w, h };
+                    SDL_RenderFillRect(Game::renderer, &box);
+                    SDL_SetRenderDrawColor(Game::renderer, 40, 40, 40, 255);
+                    SDL_Rect inner{ winW/2 - w/2 + 5, winH/2 - h/2 + 4, w - 10, h - 8 };
+                    SDL_RenderFillRect(Game::renderer, &inner);
+                    SDL_SetRenderDrawColor(Game::renderer, 100, 220, 100, 255);
+                    int pw = static_cast<int>((w - 10) * pct);
+                    if (pw < 0) pw = 0;
+                    if (pw > inner.w) pw = inner.w;
+                    SDL_Rect prog{ inner.x, inner.y, pw, inner.h };
+                    SDL_RenderFillRect(Game::renderer, &prog);
+                    SDL_RenderPresent(Game::renderer);
+                    SDL_PumpEvents();
+                    SDL_Delay(8);
+                }
+                int totalNow = static_cast<int>(g_totalToLoad.load());
+                int loadedNow = static_cast<int>(g_loadedCount.load());
+                if (totalNow > 0 && loadedNow >= totalNow) {
+                    g_totalToLoad = 0;
+                    g_loadedCount = 0;
+                }
+            }
+            return it->second;
+        }
+    }
 
     // Load surface and create texture
     SDL_Surface* tempSurface = IMG_Load(texture);
@@ -16,6 +72,12 @@ SDL_Texture* TextureManager::LoadTexture(const char* texture) {
     if (tempSurface) {
         tex = SDL_CreateTextureFromSurface(Game::renderer, tempSurface);
         SDL_FreeSurface(tempSurface);
+    }
+
+    // Insert into cache if valid
+    if (tex) {
+        std::lock_guard<std::mutex> lk(g_cacheMutex);
+        g_textureCache[key] = tex;
     }
 
     // Update progress and draw a progress bar if we have a target
@@ -71,6 +133,32 @@ SDL_Texture* TextureManager::LoadTexture(const char* texture) {
     }
 
     return tex;
+}
+
+void TextureManager::RegisterTexture(const char* key, SDL_Texture* tex) {
+    if (!key || !tex) return;
+    std::lock_guard<std::mutex> lk(g_cacheMutex);
+    std::string k(key);
+    auto it = g_textureCache.find(k);
+    if (it == g_textureCache.end()) {
+        g_textureCache[k] = tex;
+    }
+}
+
+SDL_Texture* TextureManager::GetTexture(const char* key) {
+    if (!key) return nullptr;
+    std::lock_guard<std::mutex> lk(g_cacheMutex);
+    auto it = g_textureCache.find(std::string(key));
+    if (it == g_textureCache.end()) return nullptr;
+    return it->second;
+}
+
+void TextureManager::ClearCache() {
+    std::lock_guard<std::mutex> lk(g_cacheMutex);
+    for (auto &p : g_textureCache) {
+        if (p.second) SDL_DestroyTexture(p.second);
+    }
+    g_textureCache.clear();
 }
 
 void TextureManager::SetTotalToLoad(int total) {

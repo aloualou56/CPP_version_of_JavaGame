@@ -28,7 +28,7 @@ SDL_LIB_PATH     = C:/SDL2/lib/x64
 # ==========================================
 # -Dmain=SDL_main is required for Windows
 # -I points to the include folder so <SDL2/SDL.h> works
-CXXFLAGS = -std=c++17 -Wall -Wextra -g -Dmain=SDL_main -I$(SDL_INCLUDE_PATH) -I$(SDL_INCLUDE_PATH)/SDL2
+CXXFLAGS = -std=c++17 -Wall -Wextra -g -Dmain=SDL_main -I$(SDL_INCLUDE_PATH) -I$(SDL_INCLUDE_PATH)/SDL2 -Iinclude
 
 # Linker flags: Must include the library path (-L) and specific libraries (-l)
 # Order matters: mingw32 -> SDL2main -> SDL2 -> SDL2_image
@@ -55,7 +55,8 @@ SOURCES = $(SRC_DIR)/main.cpp \
           $(SRC_DIR)/Camera.cpp \
           $(SRC_DIR)/EnvironmentAssets.cpp \
           $(SRC_DIR)/Environment/Environment.cpp \
-          $(SRC_DIR)/ECS/ParticleComponent.cpp
+          $(SRC_DIR)/ECS/ParticleComponent.cpp \
+          $(SRC_DIR)/stb_image_write_impl.cpp
 
 # Object files list (Flattened structure)
 OBJECTS = $(OBJ_DIR)/main.o \
@@ -72,7 +73,8 @@ OBJECTS = $(OBJ_DIR)/main.o \
           $(OBJ_DIR)/SpriteComponent.o \
           $(OBJ_DIR)/AnimationComponent.o \
           $(OBJ_DIR)/PositionComponent.o \
-          $(OBJ_DIR)/ParticleComponent.o
+          $(OBJ_DIR)/ParticleComponent.o \
+          $(OBJ_DIR)/stb_image_write_impl.o
 
 
 # ==========================================

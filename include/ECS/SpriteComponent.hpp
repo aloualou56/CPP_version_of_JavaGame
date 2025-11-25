@@ -3,7 +3,7 @@
 
 #include <ECS/ECS.hpp>
 #include <ECS/PositionComponent.hpp>
-#include "SDL.h"
+#include <SDL.h>
 #include <iostream>
 
 // Προκαταρκτικές δηλώσεις (forward declarations) για μη-Component κλάσεις

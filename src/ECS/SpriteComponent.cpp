@@ -1,9 +1,9 @@
-#include "SpriteComponent.hpp"
-#include "PositionComponent.hpp"
-#include "../TextureManager.hpp"
-#include "../Game.hpp"
-#include "../Camera.hpp"
-#include "ECS.hpp"
+#include <ECS/SpriteComponent.hpp>
+#include <ECS/PositionComponent.hpp>
+#include <TextureManager.hpp>
+#include <Game.hpp>
+#include <Camera.hpp>
+#include <ECS/ECS.hpp>
 
 SpriteComponent::SpriteComponent(const char* path) {
     setTex(path);
@@ -11,7 +11,7 @@ SpriteComponent::SpriteComponent(const char* path) {
 }
 
 SpriteComponent::~SpriteComponent() {
-    SDL_DestroyTexture(texture);
+    // Texture is owned by TextureManager cache; do not destroy here.
 }
 
 void SpriteComponent::setTex(const char* path) {

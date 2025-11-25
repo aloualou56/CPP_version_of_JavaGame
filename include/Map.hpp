@@ -1,7 +1,7 @@
 #ifndef Map_hpp
 #define Map_hpp
-#include <Game.hpp>
-#include <Camera.hpp>
+#include "Game.hpp"
+#include "Camera.hpp"
 #include <string>
 
 class Map {

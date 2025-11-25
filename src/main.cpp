@@ -1,5 +1,5 @@
 #include <SDL2/SDL.h>
-#include "Game.hpp"
+#include <Game.hpp>
 
 #define FPS 30
 

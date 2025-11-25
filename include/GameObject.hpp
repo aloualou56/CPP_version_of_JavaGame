@@ -1,6 +1,6 @@
 #ifndef GameObject_hpp
 #define GameObject_hpp
-#include <Game.hpp>
+#include "Game.hpp"
 
 class GameObject {
     public:

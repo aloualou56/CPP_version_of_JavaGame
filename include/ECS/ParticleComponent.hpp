@@ -25,3 +25,7 @@ private:
 };
 
 #endif
+#include <ECS/ECS.hpp>
+#include <ECS/PositionComponent.hpp>
+#include <Vector2D.hpp>
+#include <SDL.h>

@@ -405,6 +405,84 @@ The repository includes a GitHub Actions workflow (`.github/workflows/android.ym
 
 ### Troubleshooting
 
+#### Gray Screen Issue
+
+If the app shows only a gray screen when running on Android, this is typically caused by missing or incorrectly packaged assets. Follow these steps to diagnose and fix:
+
+**Step 1: Verify assets are packaged**
+
+Run the asset verification script:
+```bash
+cd android
+chmod +x verify_assets.sh
+./verify_assets.sh
+```
+
+This script checks if:
+- `android/app/src/main/assets/sprites/` exists and contains PNG files
+- `android/app/src/main/assets/asset_list.txt` exists and is populated
+
+**Step 2: Check logcat for errors**
+
+Connect your device and run:
+```bash
+# Filter for game-specific logs
+adb logcat | grep -E "(SDLGame|SDL|libSDL)"
+
+# Or view all errors
+adb logcat *:E | head -100
+```
+
+Look for messages like:
+- "Starting SDL Game..." - Confirms the app launched
+- "Game initialized successfully" - Confirms initialization completed
+- Any error messages about missing files or failed texture loading
+
+**Step 3: Rebuild with asset verification**
+
+The build script now includes automatic asset verification:
+```bash
+cd android
+./build_android.sh --clean
+```
+
+The script will:
+1. Try to run the Python asset manifest generator
+2. Verify assets were copied successfully
+3. Fall back to manual bash-based copying if Python failed
+4. Report any warnings about missing assets
+
+**Step 4: Manual asset copy (if needed)**
+
+If automatic copying fails, manually copy assets:
+```bash
+# Create assets directory
+mkdir -p android/app/src/main/assets
+
+# Copy sprites
+cp -r sprites android/app/src/main/assets/
+
+# Copy asset list
+cp asset_list.txt android/app/src/main/assets/
+
+# Optionally copy maps
+cp -r maps android/app/src/main/assets/
+```
+
+**Step 5: Verify APK contents**
+
+After building, verify the APK contains assets:
+```bash
+# List APK contents (requires unzip)
+unzip -l android/app/build/outputs/apk/release/app-release-unsigned.apk | grep assets
+```
+
+You should see entries like:
+```
+assets/sprites/characters/...
+assets/asset_list.txt
+```
+
 #### Common Issues
 
 | Issue | Solution |

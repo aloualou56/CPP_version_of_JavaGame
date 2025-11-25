@@ -297,6 +297,82 @@ sign_apk() {
     log_info "Signed APK: $SIGNED_APK"
 }
 
+# verify_assets - Verify that assets are properly copied to the Android assets directory
+# This is called after the Python script runs to ensure assets are available.
+# If assets are missing, it falls back to manual copy using bash commands.
+# Returns: outputs "true" or "false" to stdout
+verify_assets() {
+    local ANDROID_ASSETS_DIR="$ANDROID_DIR/app/src/main/assets"
+    local ASSETS_VALID=true
+    
+    # Log to stderr so only the result goes to stdout
+    log_info "Verifying assets in $ANDROID_ASSETS_DIR..." >&2
+    
+    # Check if sprites directory exists and has PNG files
+    if [ ! -d "$ANDROID_ASSETS_DIR/sprites" ]; then
+        log_warn "sprites/ directory missing in Android assets" >&2
+        ASSETS_VALID=false
+    elif [ -z "$(find "$ANDROID_ASSETS_DIR/sprites" -name "*.png" 2>/dev/null | head -1)" ]; then
+        log_warn "No PNG files found in sprites/ directory" >&2
+        ASSETS_VALID=false
+    else
+        local PNG_COUNT=$(find "$ANDROID_ASSETS_DIR/sprites" -name "*.png" | wc -l)
+        log_info "Found $PNG_COUNT PNG files in sprites/ directory" >&2
+    fi
+    
+    # Check if asset_list.txt exists
+    if [ ! -f "$ANDROID_ASSETS_DIR/asset_list.txt" ]; then
+        log_warn "asset_list.txt missing in Android assets" >&2
+        ASSETS_VALID=false
+    else
+        local ASSET_COUNT=$(wc -l < "$ANDROID_ASSETS_DIR/asset_list.txt")
+        log_info "asset_list.txt contains $ASSET_COUNT entries" >&2
+    fi
+    
+    echo "$ASSETS_VALID"
+}
+
+# fallback_copy_assets - Manually copy assets if Python script failed
+# This ensures the APK has assets even if the Python script isn't available.
+fallback_copy_assets() {
+    local ANDROID_ASSETS_DIR="$ANDROID_DIR/app/src/main/assets"
+    
+    log_info "Using fallback: manually copying assets to Android assets directory..."
+    
+    # Create the assets directory if it doesn't exist
+    mkdir -p "$ANDROID_ASSETS_DIR"
+    
+    # Copy sprites directory from project root
+    if [ -d "$PROJECT_ROOT/sprites" ]; then
+        log_info "Copying sprites/ directory..."
+        cp -r "$PROJECT_ROOT/sprites" "$ANDROID_ASSETS_DIR/"
+        log_info "sprites/ copied successfully"
+    else
+        log_error "sprites/ directory not found in project root: $PROJECT_ROOT"
+        return 1
+    fi
+    
+    # Copy maps directory if it exists
+    if [ -d "$PROJECT_ROOT/maps" ]; then
+        log_info "Copying maps/ directory..."
+        cp -r "$PROJECT_ROOT/maps" "$ANDROID_ASSETS_DIR/"
+        log_info "maps/ copied successfully"
+    fi
+    
+    # Generate asset_list.txt using bash as fallback
+    # This lists all PNG files in the sprites/ directory (matching the original format)
+    log_info "Generating asset_list.txt..."
+    (
+        cd "$ANDROID_ASSETS_DIR"
+        find sprites -type f -name "*.png" 2>/dev/null | sort
+    ) > "$ANDROID_ASSETS_DIR/asset_list.txt"
+    
+    local ASSET_COUNT=$(wc -l < "$ANDROID_ASSETS_DIR/asset_list.txt")
+    log_info "Generated asset_list.txt with $ASSET_COUNT entries"
+    
+    return 0
+}
+
 main() {
     log_info "Starting Android build..."
     log_info "Project root: $PROJECT_ROOT"
@@ -313,6 +389,24 @@ main() {
         python ../scripts/generate_asset_manifest.py || log_warn "Asset manifest generation failed"
     else
         log_warn "Python not found; ensure assets/ and sprites/ are copied into android assets manually."
+    fi
+    
+    # Verify that assets were copied successfully
+    # This fixes the gray screen issue by ensuring assets are always available
+    if [ "$(verify_assets)" != "true" ]; then
+        log_warn "Asset verification failed. Attempting fallback copy..."
+        if fallback_copy_assets; then
+            # Re-verify after fallback
+            if [ "$(verify_assets)" != "true" ]; then
+                log_error "Assets still missing after fallback copy. APK may show gray screen!"
+            else
+                log_info "Fallback copy successful. Assets are now available."
+            fi
+        else
+            log_error "Fallback copy failed. APK will likely show gray screen!"
+        fi
+    else
+        log_info "Asset verification passed."
     fi
     
     # Download SDL2 if needed

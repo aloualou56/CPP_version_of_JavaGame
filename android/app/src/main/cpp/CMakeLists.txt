@@ -54,10 +54,16 @@ set_target_properties(SDL2 PROPERTIES
     IMPORTED_LOCATION "${SDL2_DIR}/lib/${ANDROID_ABI}/libSDL2.so"
 )
 
-add_library(SDL2main STATIC IMPORTED)
-set_target_properties(SDL2main PROPERTIES
-    IMPORTED_LOCATION "${SDL2_DIR}/lib/${ANDROID_ABI}/libSDL2main.a"
-)
+# SDL2main is optional on Android - only include if it exists
+if(EXISTS "${SDL2_DIR}/lib/${ANDROID_ABI}/libSDL2main.a")
+    add_library(SDL2main STATIC IMPORTED)
+    set_target_properties(SDL2main PROPERTIES
+        IMPORTED_LOCATION "${SDL2_DIR}/lib/${ANDROID_ABI}/libSDL2main.a"
+    )
+    set(SDL2MAIN_LIB SDL2main)
+else()
+    set(SDL2MAIN_LIB "")
+endif()
 
 add_library(SDL2_image SHARED IMPORTED)
 set_target_properties(SDL2_image PROPERTIES
@@ -72,7 +78,7 @@ add_library(game SHARED
 
 # Link with SDL2 libraries and Android system libraries
 target_link_libraries(game
-    SDL2main
+    ${SDL2MAIN_LIB}
     SDL2
     SDL2_image
     android

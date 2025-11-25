@@ -211,6 +211,12 @@ jobs:
         # Cleanup source directories
         rm -rf SDL2-source SDL2_image-source
 
+    - name: Generate asset manifest and copy assets into Android assets
+      run: |
+        echo "Generating asset manifest and copying assets into android/app/src/main/assets/"
+        python3 scripts/generate_asset_manifest.py
+      shell: bash
+
     - name: Grant execute permission for gradlew
       run: chmod +x android/gradlew
 

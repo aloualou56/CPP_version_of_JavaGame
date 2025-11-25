@@ -630,3 +630,41 @@ make -f Makefile.linux
 ---
 
 **Ημερομηνία Ενημέρωσης**: 24 Νοεμβρίου 2025
+
+---
+
+## 🔐 Sign APK Workflow
+
+The repository includes a GitHub Actions workflow (`.github/workflows/sign-apk.yml`) that signs the `Game.apk` in the repository root and uploads the signed APK as an artifact.
+
+### Running the Workflow
+
+1. Go to the **Actions** tab in GitHub
+2. Select **Sign APK** from the workflows list
+3. Click **Run workflow**
+4. Once completed, download the signed APK from the workflow artifacts
+
+### Providing a Custom Keystore (Optional)
+
+By default, the workflow generates a debug keystore for signing. To use your own release keystore:
+
+1. **Encode your keystore to base64:**
+   ```bash
+   # macOS
+   base64 release.keystore | pbcopy
+   
+   # Linux
+   base64 -w0 release.keystore
+   ```
+
+2. **Add secrets to GitHub:**
+   - Go to your repository → **Settings** → **Secrets and variables** → **Actions**
+   - Add the following secrets:
+     - `ANDROID_KEYSTORE`: Paste the base64-encoded keystore
+     - `KEY_ALIAS`: Your key alias (default: `androiddebugkey`)
+     - `KEYSTORE_PASSWORD`: Your keystore password (default: `android`)
+     - `KEY_PASSWORD`: Your key password (default: `android`)
+
+3. **Run the workflow** - it will use your custom keystore for signing
+
+**Note:** Never commit your keystore files to the repository. Always use secrets for sensitive data.

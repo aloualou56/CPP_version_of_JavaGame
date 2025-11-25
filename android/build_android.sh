@@ -301,6 +301,19 @@ main() {
     log_info "Starting Android build..."
     log_info "Project root: $PROJECT_ROOT"
     log_info "Android directory: $ANDROID_DIR"
+    # Ensure assets and an asset manifest are prepared so the game can load
+    # resources on Android (the APK packages assets and they are not visible
+    # via normal filesystem APIs). This will copy `sprites/` and `assets/`
+    # into the Android assets directory and generate `asset_list.txt`.
+    if command -v python3 >/dev/null 2>&1; then
+        log_info "Generating asset manifest and copying assets..."
+        python3 ../scripts/generate_asset_manifest.py || log_warn "Asset manifest generation failed"
+    elif command -v python >/dev/null 2>&1; then
+        log_info "Generating asset manifest and copying assets..."
+        python ../scripts/generate_asset_manifest.py || log_warn "Asset manifest generation failed"
+    else
+        log_warn "Python not found; ensure assets/ and sprites/ are copied into android assets manually."
+    fi
     
     # Download SDL2 if needed
     download_sdl2

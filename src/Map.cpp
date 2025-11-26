@@ -21,10 +21,10 @@ Map::Map() {
     // Προσπαθεί να φορτώσει χάρτη από αρχείο
     loadMapFromFile("maps/map01.txt");
 
-    src.x = src.y = 0;
-    src.w = src.h = 16;  // Πηγή πλακιδίου 16x16
+    src.x = src.y = 0.0f;
+    src.w = src.h = 16.0f;  // Πηγή πλακιδίου 16x16
     
-    dest.w = dest.h = TILE_SIZE;  // Προορισμός κλιμακωμένος σε 96x96
+    dest.w = dest.h = (float)TILE_SIZE;  // Προορισμός κλιμακωμένος σε 96x96
 }
 
 Map::~Map() {
@@ -83,8 +83,8 @@ void Map::DrawMap(Camera* camera) {
             int worldY = row * TILE_SIZE;
             
             // Μετατρέπει σε θέση οθόνης
-            dest.x = camera->worldToScreenX(worldX);
-            dest.y = camera->worldToScreenY(worldY);
+            dest.x = (float)camera->worldToScreenX(worldX);
+            dest.y = (float)camera->worldToScreenY(worldY);
 
             switch (type) {
             case 0:

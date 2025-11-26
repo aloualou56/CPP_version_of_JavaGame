@@ -20,6 +20,7 @@ static SDL_Texture* createTextureFromRGBA(int w, int h, const std::vector<unsign
     if (!t) return nullptr;
     SDL_UpdateTexture(t, nullptr, buf.data(), w * 4);
     SDL_SetTextureBlendMode(t, SDL_BLENDMODE_BLEND);
+    SDL_SetTextureScaleMode(t, SDL_SCALEMODE_NEAREST);
     return t;
 }
 
@@ -41,9 +42,9 @@ void HUD::init(int maxH) {
 
     if (heartFull && heart3q && heartHalf && heart1q && heartEmpty) {
         texturesLoaded = true;
-        int w,h;
-        SDL_QueryTexture(heartFull, nullptr, nullptr, &w, &h);
-        if (w>0) heartSize = w;
+        float w,h;
+        SDL_GetTextureSize(heartFull, &w, &h);
+        if (w > 0.0f) heartSize = (int)w;
         return;
     }
 

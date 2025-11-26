@@ -105,7 +105,10 @@ void AnimationComponent::update() {
     if (!currentAnimation.empty() && !animations[currentAnimation].empty()) {
         SDL_Texture* currentTex = animations[currentAnimation][animIndex];
         if (currentTex) {
-            SDL_QueryTexture(currentTex, NULL, NULL, &srcRect.w, &srcRect.h);
+            float tw=0.0f, th=0.0f;
+            SDL_GetTextureSize(currentTex, &tw, &th);
+            srcRect.w = tw;
+            srcRect.h = th;
             srcRect.x = 0;
             srcRect.y = 0;
         }

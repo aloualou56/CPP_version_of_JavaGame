@@ -39,8 +39,8 @@ void HUD::init(int maxH) {
 
     if (heartFull && heart3q && heartHalf && heart1q && heartEmpty) {
         texturesLoaded = true;
-        float fw, fh;
-        SDL_GetTextureSize(heartFull, &fw, &fh);
+        float fw = 0;
+        SDL_GetTextureSize(heartFull, &fw, nullptr);
         int w = (int)fw;
         if (w>0) heartSize = w;
         return;

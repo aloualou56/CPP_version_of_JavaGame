@@ -1,6 +1,6 @@
 #include <ECS/ParticleComponent.hpp>
 #include <ECS/ECS.hpp>
-#include <SDL.h>
+#include <SDL3/SDL.h>
 
 ParticleComponent::ParticleComponent(float lifeMs, float vx, float vy, float damp) {
     lifetime = lifeMs;

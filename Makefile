@@ -11,7 +11,8 @@ CXX ?= g++
 # --- OPTION A: Standard MSYS2 (UCRT64) for SDL3 ---
 # Most common if you followed modern tutorials
 SDL_INCLUDE_PATH = C:/SDL3/include
-SDL_LIB_PATH     = C:/SDL3/lib/x64
+# Default to C:/SDL3/lib where the mingw import libs are usually located
+SDL_LIB_PATH     = C:/SDL3/lib
 
 # If you installed SDL_image separately, point here (example you provided)
 SDL_IMAGE_INCLUDE = C:/SDL3_image/include

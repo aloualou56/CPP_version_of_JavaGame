@@ -62,8 +62,8 @@ void SpriteComponent::draw() {
 
     // Debug: draw anchor/feet marker when game debug mode is enabled
     if (Game::debugMode && Game::renderer) {
-        // Save previous draw color
-        float pr, pg, pb, pa;
+        // Save previous draw color (SDL_GetRenderDrawColor uses Uint8 channels)
+        Uint8 pr, pg, pb, pa;
         SDL_GetRenderDrawColor(Game::renderer, &pr, &pg, &pb, &pa);
 
         // Red line at the computed anchor (feet)
@@ -74,7 +74,7 @@ void SpriteComponent::draw() {
         SDL_FRect mark{ destRect.x + destRect.w / 2.0f - 2.0f, anchorScreenY - 2.0f, 4.0f, 4.0f };
         SDL_RenderFillRect(Game::renderer, &mark);
 
-        // Restore previous color
+        // Restore previous color (pass Uint8 channels)
         SDL_SetRenderDrawColor(Game::renderer, pr, pg, pb, pa);
     }
 }

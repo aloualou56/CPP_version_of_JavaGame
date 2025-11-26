@@ -1,5 +1,5 @@
 /**
- * android_main.cpp - Android entry point for SDL2 game
+ * android_main.cpp - Android entry point for SDL3 game
  * 
  * This file provides the Android-specific main entry point that
  * initializes SDL2 and calls into the game's main loop.
@@ -8,7 +8,7 @@
  * the Android lifecycle, and this native code is loaded as a shared library.
  */
 
-#include <SDL.h>
+#include <SDL3/SDL.h>
 #include <jni.h>
 #include <android/log.h>
 #include <string>
@@ -34,7 +34,7 @@ extern "C" int main(int argc, char* argv[]) {
     LOGI("SDL Version: %d.%d.%d", SDL_MAJOR_VERSION, SDL_MINOR_VERSION, SDL_PATCHLEVEL);
     
     const int FrameDelay = 1000 / FPS;
-    Uint32 frameStart;
+    Uint64 frameStart;
     int frametime;
     
     // Create game instance
@@ -60,7 +60,7 @@ extern "C" int main(int argc, char* argv[]) {
         game->render();
         
         // Frame rate limiting
-        frametime = SDL_GetTicks() - frameStart;
+        frametime = (int)(SDL_GetTicks() - frameStart);
         if (FrameDelay > frametime) {
             SDL_Delay(FrameDelay - frametime);
         }

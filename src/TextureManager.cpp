@@ -75,13 +75,13 @@ SDL_Texture* TextureManager::LoadTexture(const char* texture) {
     SDL_Surface* tempSurface = IMG_Load(texture);
     if (!tempSurface) {
         // Log why IMG_Load failed for debugging
-        const char* imgErr = IMG_GetError();
+        const char* imgErr = SDL_GetError();
         SDL_LogWarn(SDL_LOG_CATEGORY_APPLICATION, "IMG_Load failed for '%s' -> %s", texture ? texture : "(null)", imgErr ? imgErr : "(no error)");
         SDL_IOStream* io = SDL_IOFromFile(texture, "rb");
         if (io) {
-            tempSurface = IMG_LoadIO(io, true); // auto-close io
+            tempSurface = IMG_Load_IO(io, true); // auto-close io
             if (!tempSurface) {
-                const char* imgErr2 = IMG_GetError();
+                const char* imgErr2 = SDL_GetError();
                 SDL_LogWarn(SDL_LOG_CATEGORY_APPLICATION, "IMG_LoadIO failed for '%s' -> %s", texture ? texture : "(null)", imgErr2 ? imgErr2 : "(no error)");
             }
         } else {
@@ -100,6 +100,8 @@ SDL_Texture* TextureManager::LoadTexture(const char* texture) {
 
     // Insert into cache if valid
     if (tex) {
+        // For pixel-art assets, prefer nearest filtering to avoid blurring when scaled
+        SDL_SetTextureScaleMode(tex, SDL_SCALEMODE_NEAREST);
         std::lock_guard<std::mutex> lk(g_cacheMutex);
         g_textureCache[key] = tex;
     }
@@ -165,6 +167,8 @@ void TextureManager::RegisterTexture(const char* key, SDL_Texture* tex) {
     std::string k(key);
     auto it = g_textureCache.find(k);
     if (it == g_textureCache.end()) {
+        // Ensure consistent scale mode for registered textures too
+        SDL_SetTextureScaleMode(tex, SDL_SCALEMODE_NEAREST);
         g_textureCache[k] = tex;
     }
 }
@@ -210,11 +214,11 @@ int TextureManager::DetectBottomOpaqueRow(const char* fileName) {
     // SDL_IOFromFile/IMG_LoadIO for packaged assets on Android.
     SDL_Surface* surf = IMG_Load(fileName);
     if (!surf) {
-        SDL_LogWarn(SDL_LOG_CATEGORY_APPLICATION, "IMG_Load failed for '%s' in DetectBottomOpaqueRow: %s", fileName ? fileName : "(null)", IMG_GetError());
+        SDL_LogWarn(SDL_LOG_CATEGORY_APPLICATION, "IMG_Load failed for '%s' in DetectBottomOpaqueRow: %s", fileName ? fileName : "(null)", SDL_GetError());
         SDL_IOStream* io = SDL_IOFromFile(fileName, "rb");
         if (io) {
-            surf = IMG_LoadIO(io, 1);
-            if (!surf) SDL_LogWarn(SDL_LOG_CATEGORY_APPLICATION, "IMG_LoadIO failed for '%s' in DetectBottomOpaqueRow: %s", fileName ? fileName : "(null)", IMG_GetError());
+            surf = IMG_Load_IO(io, 1);
+            if (!surf) SDL_LogWarn(SDL_LOG_CATEGORY_APPLICATION, "IMG_Load_IO failed for '%s' in DetectBottomOpaqueRow: %s", fileName ? fileName : "(null)", SDL_GetError());
         } else {
             SDL_LogWarn(SDL_LOG_CATEGORY_APPLICATION, "SDL_IOFromFile returned NULL for '%s' in DetectBottomOpaqueRow", fileName ? fileName : "(null)");
         }
@@ -224,8 +228,8 @@ int TextureManager::DetectBottomOpaqueRow(const char* fileName) {
         return -1;
     }
 
-    SDL_PixelFormat *fmt = surf->format;
-    int bpp = fmt->BytesPerPixel;
+    const SDL_PixelFormatDetails* fmt = SDL_GetPixelFormatDetails(surf->format);
+    int bpp = fmt->bytes_per_pixel;
 
     if (SDL_MUSTLOCK(surf)) SDL_LockSurface(surf);
 
@@ -251,7 +255,7 @@ int TextureManager::DetectBottomOpaqueRow(const char* fileName) {
                 case 4: pixel = *(Uint32*)p; break;
             }
             Uint8 r,g,b,a;
-            SDL_GetRGBA(pixel, fmt, &r, &g, &b, &a);
+            SDL_GetRGBA(pixel, fmt, NULL, &r, &g, &b, &a);
             if (a >= ALPHA_THRESHOLD) opaqueCount++;
         }
 

@@ -40,18 +40,19 @@ Game::Game() {}
 Game::~Game() {}
 
 void Game::init(const char *title, int xpos, int ypos, int width, int height, bool fullscreen) {
-    int flags = 0;
+    (void)xpos; (void)ypos; // SDL3 doesn't use position in SDL_CreateWindow
+    SDL_WindowFlags flags = 0;
     if(fullscreen) flags = SDL_WINDOW_FULLSCREEN;
 
-    if(SDL_Init(SDL_INIT_EVERYTHING) == 0) {
+    if(SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_EVENTS)) {
         SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "SDL_Init succeeded");
 
-        window = SDL_CreateWindow(title, xpos, ypos, width, height, flags);
+        window = SDL_CreateWindow(title, width, height, flags);
         if(window) {
             SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "Window created successfully");
         }
 
-        renderer = SDL_CreateRenderer(window, -1, 0);
+        renderer = SDL_CreateRenderer(window, NULL);
         if(renderer) {
             SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
             SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "Renderer created successfully");
@@ -62,10 +63,10 @@ void Game::init(const char *title, int xpos, int ypos, int width, int height, bo
             SDL_SetRenderDrawColor(renderer, 20, 20, 20, 255);
             SDL_RenderClear(renderer);
             SDL_SetRenderDrawColor(renderer, 200, 200, 200, 255);
-            SDL_Rect box{ width/2 - 120, height/2 - 20, 240, 40 };
+            SDL_FRect box{ (float)(width/2 - 120), (float)(height/2 - 20), 240.0f, 40.0f };
             SDL_RenderFillRect(renderer, &box);
             SDL_SetRenderDrawColor(renderer, 40, 40, 40, 255);
-            SDL_Rect inner{ width/2 - 110, height/2 - 10, 220, 20 };
+            SDL_FRect inner{ (float)(width/2 - 110), (float)(height/2 - 10), 220.0f, 20.0f };
             SDL_RenderFillRect(renderer, &inner);
             SDL_RenderPresent(renderer);
             SDL_Delay(50);
@@ -87,14 +88,14 @@ void Game::init(const char *title, int xpos, int ypos, int width, int height, bo
 
     // Count image assets: prefer a packaged manifest, fallback to filesystem scan
     int pngCount = 0;
-    SDL_RWops* rw = SDL_RWFromFile("asset_list.txt", "r");
+    SDL_IOStream* rw = SDL_IOFromFile("asset_list.txt", "r");
     if (rw != nullptr) {
-        Sint64 sz = SDL_RWsize(rw);
+        Sint64 sz = SDL_GetIOSize(rw);
         if (sz > 0) {
             std::string buf;
             buf.resize((size_t)sz);
-            SDL_RWread(rw, &buf[0], 1, (size_t)sz);
-            SDL_RWclose(rw);
+            SDL_ReadIO(rw, &buf[0], (size_t)sz);
+            SDL_CloseIO(rw);
             size_t startpos = 0;
             while (startpos < buf.size()) {
                 size_t pos = buf.find('\n', startpos);
@@ -112,7 +113,7 @@ void Game::init(const char *title, int xpos, int ypos, int width, int height, bo
                 if (ext == ".png" || ext == ".bmp" || ext == ".jpg") pngCount++;
             }
         } else {
-            SDL_RWclose(rw);
+            SDL_CloseIO(rw);
         }
     } else {
         namespace fs = std::filesystem;
@@ -188,18 +189,18 @@ void Game::init(const char *title, int xpos, int ypos, int width, int height, bo
 void Game::handleEvents() {
     while (SDL_PollEvent(&event)) {
         switch (event.type) {
-            case SDL_QUIT:
+            case SDL_EVENT_QUIT:
                 isRunning = false;
                 break;
-            case SDL_KEYDOWN:
-                if (event.key.keysym.sym == SDLK_TAB && event.key.repeat == 0) {
+            case SDL_EVENT_KEY_DOWN:
+                if (event.key.key == SDLK_TAB && event.key.repeat == 0) {
                     Game::debugMode = !Game::debugMode;
                     std::cout << "Debug mode: " << (Game::debugMode ? "ON" : "OFF") << std::endl;
                 }
-                if (event.key.keysym.sym == SDLK_ESCAPE && event.key.repeat == 0) {
+                if (event.key.key == SDLK_ESCAPE && event.key.repeat == 0) {
                     isRunning = false;
                 }
-                if (event.key.keysym.sym == SDLK_r && event.key.repeat == 0) {
+                if (event.key.key == SDLK_R && event.key.repeat == 0) {
                     if (player.hasComponent<AnimationComponent>()) {
                         player.getComponent<AnimationComponent>().play("Attack", false);
                     }
@@ -224,7 +225,7 @@ void Game::update() {
         auto& playerPos = player.getComponent<PositionComponent>();
         playerPos.velocity.x *= -1;
         playerPos.velocity.y *= -1;
-        unsigned int now = SDL_GetTicks();
+        Uint64 now = SDL_GetTicks();
         if (now - this->lastDamageTime > 400) {
             this->lastDamageTime = now;
             if (player.hasComponent<HealthComponent>()) {

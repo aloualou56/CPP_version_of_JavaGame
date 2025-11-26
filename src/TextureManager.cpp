@@ -2,8 +2,8 @@
 #include <unordered_map>
 #include <cctype>
 #include <atomic>
-#include <SDL.h>
-#include <SDL_image.h>
+#include <SDL3/SDL.h>
+#include <SDL3_image/SDL_image.h>
 #include <sstream>
 #include <map>
 #include <string>
@@ -37,21 +37,21 @@ SDL_Texture* TextureManager::LoadTexture(const char* texture) {
                     if (pct > 1.0f) pct = 1.0f;
                     int w = 240, h = 20;
                     int winW = 800, winH = 600;
-                    SDL_GetRendererOutputSize(Game::renderer, &winW, &winH);
+                    SDL_GetRenderOutputSize(Game::renderer, &winW, &winH);
                     SDL_SetRenderDrawBlendMode(Game::renderer, SDL_BLENDMODE_NONE);
                     SDL_SetRenderDrawColor(Game::renderer, 20, 20, 20, 255);
                     SDL_RenderClear(Game::renderer);
                     SDL_SetRenderDrawColor(Game::renderer, 200, 200, 200, 255);
-                    SDL_Rect box{ winW/2 - w/2, winH/2 - h/2, w, h };
+                    SDL_FRect box{ (float)(winW/2 - w/2), (float)(winH/2 - h/2), (float)w, (float)h };
                     SDL_RenderFillRect(Game::renderer, &box);
                     SDL_SetRenderDrawColor(Game::renderer, 40, 40, 40, 255);
-                    SDL_Rect inner{ winW/2 - w/2 + 5, winH/2 - h/2 + 4, w - 10, h - 8 };
+                    SDL_FRect inner{ (float)(winW/2 - w/2 + 5), (float)(winH/2 - h/2 + 4), (float)(w - 10), (float)(h - 8) };
                     SDL_RenderFillRect(Game::renderer, &inner);
                     SDL_SetRenderDrawColor(Game::renderer, 100, 220, 100, 255);
                     int pw = static_cast<int>((w - 10) * pct);
                     if (pw < 0) pw = 0;
-                    if (pw > inner.w) pw = inner.w;
-                    SDL_Rect prog{ inner.x, inner.y, pw, inner.h };
+                    if (pw > w - 10) pw = w - 10;
+                    SDL_FRect prog{ inner.x, inner.y, (float)pw, inner.h };
                     SDL_RenderFillRect(Game::renderer, &prog);
                     SDL_RenderPresent(Game::renderer);
                     SDL_PumpEvents();
@@ -70,28 +70,26 @@ SDL_Texture* TextureManager::LoadTexture(const char* texture) {
 
     // Load surface and create texture. First try IMG_Load (works on desktop
     // and many SDL_image Android builds). If that fails (e.g. assets are
-    // packaged inside the APK), try SDL_RWFromFile + IMG_Load_RW which can
-    // read packaged assets via SDL's RW API.
+    // packaged inside the APK), try SDL_IOFromFile + IMG_Load_IO which can
+    // read packaged assets via SDL's IO API.
     SDL_Surface* tempSurface = IMG_Load(texture);
     if (!tempSurface) {
         // Log why IMG_Load failed for debugging
-        const char* imgErr = IMG_GetError();
-        SDL_LogWarn(SDL_LOG_CATEGORY_APPLICATION, "IMG_Load failed for '%s' -> %s", texture ? texture : "(null)", imgErr ? imgErr : "(no error)");
-        SDL_RWops* rw = SDL_RWFromFile(texture, "rb");
+        SDL_LogWarn(SDL_LOG_CATEGORY_APPLICATION, "IMG_Load failed for '%s' -> %s", texture ? texture : "(null)", SDL_GetError());
+        SDL_IOStream* rw = SDL_IOFromFile(texture, "rb");
         if (rw) {
-            tempSurface = IMG_Load_RW(rw, 1); // auto-free rw
+            tempSurface = IMG_Load_IO(rw, true); // auto-free rw
             if (!tempSurface) {
-                const char* imgErr2 = IMG_GetError();
-                SDL_LogWarn(SDL_LOG_CATEGORY_APPLICATION, "IMG_Load_RW failed for '%s' -> %s", texture ? texture : "(null)", imgErr2 ? imgErr2 : "(no error)");
+                SDL_LogWarn(SDL_LOG_CATEGORY_APPLICATION, "IMG_Load_IO failed for '%s' -> %s", texture ? texture : "(null)", SDL_GetError());
             }
         } else {
-            SDL_LogWarn(SDL_LOG_CATEGORY_APPLICATION, "SDL_RWFromFile returned NULL for '%s'", texture ? texture : "(null)");
+            SDL_LogWarn(SDL_LOG_CATEGORY_APPLICATION, "SDL_IOFromFile returned NULL for '%s'", texture ? texture : "(null)");
         }
     }
     SDL_Texture* tex = nullptr;
     if (tempSurface) {
         tex = SDL_CreateTextureFromSurface(Game::renderer, tempSurface);
-        SDL_FreeSurface(tempSurface);
+        SDL_DestroySurface(tempSurface);
     }
     else {
         // Log failure to create a surface for diagnosing missing/corrupt assets
@@ -119,7 +117,7 @@ SDL_Texture* TextureManager::LoadTexture(const char* texture) {
             int winW = 800, winH = 600;
             // try to query actual renderer output size
             if (Game::renderer) {
-                SDL_GetRendererOutputSize(Game::renderer, &winW, &winH);
+                SDL_GetRenderOutputSize(Game::renderer, &winW, &winH);
             }
 
             SDL_SetRenderDrawBlendMode(Game::renderer, SDL_BLENDMODE_NONE);
@@ -128,18 +126,18 @@ SDL_Texture* TextureManager::LoadTexture(const char* texture) {
             SDL_RenderClear(Game::renderer);
             // outer box
             SDL_SetRenderDrawColor(Game::renderer, 200, 200, 200, 255);
-            SDL_Rect box{ winW/2 - w/2, winH/2 - h/2, w, h };
+            SDL_FRect box{ (float)(winW/2 - w/2), (float)(winH/2 - h/2), (float)w, (float)h };
             SDL_RenderFillRect(Game::renderer, &box);
             // inner
             SDL_SetRenderDrawColor(Game::renderer, 40, 40, 40, 255);
-            SDL_Rect inner{ winW/2 - w/2 + 5, winH/2 - h/2 + 4, w - 10, h - 8 };
+            SDL_FRect inner{ (float)(winW/2 - w/2 + 5), (float)(winH/2 - h/2 + 4), (float)(w - 10), (float)(h - 8) };
             SDL_RenderFillRect(Game::renderer, &inner);
             // progress (clamp width)
             SDL_SetRenderDrawColor(Game::renderer, 100, 220, 100, 255);
             int pw = static_cast<int>((w - 10) * pct);
             if (pw < 0) pw = 0;
-            if (pw > inner.w) pw = inner.w;
-            SDL_Rect prog{ inner.x, inner.y, pw, inner.h };
+            if (pw > w - 10) pw = w - 10;
+            SDL_FRect prog{ inner.x, inner.y, (float)pw, inner.h };
             SDL_RenderFillRect(Game::renderer, &prog);
             SDL_RenderPresent(Game::renderer);
             SDL_PumpEvents();
@@ -200,23 +198,25 @@ void TextureManager::Draw(SDL_Texture *tex, SDL_Rect src, SDL_Rect dest) {
     TextureManager::Draw(tex, src, dest, SDL_FLIP_NONE);
 }
 
-void TextureManager::Draw(SDL_Texture *tex, SDL_Rect src, SDL_Rect dest, SDL_RendererFlip flip) {
-    // Χρήση SDL_RenderCopyEx για να επιτρέπεται ο οριζόντιος κατοπτρισμός (flip) του χαρακτήρα
-    SDL_RenderCopyEx(Game::renderer, tex, &src, &dest, 0.0, nullptr, flip);
+void TextureManager::Draw(SDL_Texture *tex, SDL_Rect src, SDL_Rect dest, SDL_FlipMode flip) {
+    // Χρήση SDL_RenderTextureRotated για να επιτρέπεται ο οριζόντιος κατοπτρισμός (flip) του χαρακτήρα
+    SDL_FRect srcF{ (float)src.x, (float)src.y, (float)src.w, (float)src.h };
+    SDL_FRect destF{ (float)dest.x, (float)dest.y, (float)dest.w, (float)dest.h };
+    SDL_RenderTextureRotated(Game::renderer, tex, &srcF, &destF, 0.0, nullptr, flip);
 }
 
 int TextureManager::DetectBottomOpaqueRow(const char* fileName) {
     // Similar fallback for DetectBottomOpaqueRow: try IMG_Load first, then
-    // SDL_RWFromFile/IMG_Load_RW for packaged assets on Android.
+    // SDL_IOFromFile/IMG_Load_IO for packaged assets on Android.
     SDL_Surface* surf = IMG_Load(fileName);
     if (!surf) {
-        SDL_LogWarn(SDL_LOG_CATEGORY_APPLICATION, "IMG_Load failed for '%s' in DetectBottomOpaqueRow: %s", fileName ? fileName : "(null)", IMG_GetError());
-        SDL_RWops* rw = SDL_RWFromFile(fileName, "rb");
+        SDL_LogWarn(SDL_LOG_CATEGORY_APPLICATION, "IMG_Load failed for '%s' in DetectBottomOpaqueRow: %s", fileName ? fileName : "(null)", SDL_GetError());
+        SDL_IOStream* rw = SDL_IOFromFile(fileName, "rb");
         if (rw) {
-            surf = IMG_Load_RW(rw, 1);
-            if (!surf) SDL_LogWarn(SDL_LOG_CATEGORY_APPLICATION, "IMG_Load_RW failed for '%s' in DetectBottomOpaqueRow: %s", fileName ? fileName : "(null)", IMG_GetError());
+            surf = IMG_Load_IO(rw, true);
+            if (!surf) SDL_LogWarn(SDL_LOG_CATEGORY_APPLICATION, "IMG_Load_IO failed for '%s' in DetectBottomOpaqueRow: %s", fileName ? fileName : "(null)", SDL_GetError());
         } else {
-            SDL_LogWarn(SDL_LOG_CATEGORY_APPLICATION, "SDL_RWFromFile returned NULL for '%s' in DetectBottomOpaqueRow", fileName ? fileName : "(null)");
+            SDL_LogWarn(SDL_LOG_CATEGORY_APPLICATION, "SDL_IOFromFile returned NULL for '%s' in DetectBottomOpaqueRow", fileName ? fileName : "(null)");
         }
     }
     if (!surf) {
@@ -224,8 +224,8 @@ int TextureManager::DetectBottomOpaqueRow(const char* fileName) {
         return -1;
     }
 
-    SDL_PixelFormat *fmt = surf->format;
-    int bpp = fmt->BytesPerPixel;
+    const SDL_PixelFormatDetails *fmt = SDL_GetPixelFormatDetails(surf->format);
+    int bpp = fmt->bytes_per_pixel;
 
     if (SDL_MUSTLOCK(surf)) SDL_LockSurface(surf);
 
@@ -251,21 +251,21 @@ int TextureManager::DetectBottomOpaqueRow(const char* fileName) {
                 case 4: pixel = *(Uint32*)p; break;
             }
             Uint8 r,g,b,a;
-            SDL_GetRGBA(pixel, fmt, &r, &g, &b, &a);
+            SDL_GetRGBA(pixel, fmt, nullptr, &r, &g, &b, &a);
             if (a >= ALPHA_THRESHOLD) opaqueCount++;
         }
 
         if (opaqueCount >= (int)(surf->w * MIN_FRACTION)) {
             if (SDL_MUSTLOCK(surf)) SDL_UnlockSurface(surf);
             int result = y;
-            SDL_FreeSurface(surf);
+            SDL_DestroySurface(surf);
             return result;
         }
     }
 
     if (SDL_MUSTLOCK(surf)) SDL_UnlockSurface(surf);
     int fallback = surf->h - 1;
-    SDL_FreeSurface(surf);
+    SDL_DestroySurface(surf);
     return fallback;
 }
 
@@ -279,16 +279,16 @@ int TextureManager::GetAnchorOverride(const char* fileName) {
     if (!loaded) {
         loaded = true;
         const char *path = "assets/anchor_overrides.txt";
-        // Try to read via SDL_RWFromFile first (works for packaged APK assets),
+        // Try to read via SDL_IOFromFile first (works for packaged APK assets),
         // fall back to fopen for desktop where assets may be real files.
-        SDL_RWops* rw = SDL_RWFromFile(path, "r");
+        SDL_IOStream* rw = SDL_IOFromFile(path, "r");
         if (rw) {
-            Sint64 sz = SDL_RWsize(rw);
+            Sint64 sz = SDL_GetIOSize(rw);
             if (sz > 0) {
                 std::string buf;
                 buf.resize((size_t)sz);
-                SDL_RWread(rw, &buf[0], 1, (size_t)sz);
-                SDL_RWclose(rw);
+                SDL_ReadIO(rw, &buf[0], (size_t)sz);
+                SDL_CloseIO(rw);
                 // Manually split into lines to avoid relying on <sstream> on
                 // some Android toolchain configurations.
                 size_t start = 0;
@@ -313,7 +313,7 @@ int TextureManager::GetAnchorOverride(const char* fileName) {
                     }
                 }
             } else {
-                SDL_RWclose(rw);
+                SDL_CloseIO(rw);
             }
         } else {
             FILE *f = fopen(path, "r");

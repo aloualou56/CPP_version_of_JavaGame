@@ -73,7 +73,7 @@ void AnimationComponent::play(const std::string& animName, bool loop) {
 
 void AnimationComponent::update() {
     if (animated && !currentAnimation.empty()) {
-        if (SDL_GetTicks() - lastFrameTime > static_cast<Uint32>(animSpeed)) {
+        if (SDL_GetTicks() - lastFrameTime > static_cast<Uint64>(animSpeed)) {
             animIndex++;
             size_t frameCount = animations[currentAnimation].size();
             if (animIndex >= static_cast<int>(frameCount)) {
@@ -105,7 +105,10 @@ void AnimationComponent::update() {
     if (!currentAnimation.empty() && !animations[currentAnimation].empty()) {
         SDL_Texture* currentTex = animations[currentAnimation][animIndex];
         if (currentTex) {
-            SDL_QueryTexture(currentTex, NULL, NULL, &srcRect.w, &srcRect.h);
+            float fw, fh;
+            SDL_GetTextureSize(currentTex, &fw, &fh);
+            srcRect.w = (int)fw;
+            srcRect.h = (int)fh;
             srcRect.x = 0;
             srcRect.y = 0;
         }

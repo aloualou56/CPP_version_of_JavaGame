@@ -1,8 +1,8 @@
 #ifndef Game_hpp
 #define Game_hpp
 
-#include <SDL.h>
-#include <SDL_image.h>
+#include <SDL3/SDL.h>
+#include <SDL3_image/SDL_image.h>
 #include <iostream>
 #include "ECS/ECS.hpp"
 
@@ -40,7 +40,7 @@ class Game {
       SDL_Window *window;
       // HUD and health are managed via ECS `HealthComponent` now
       HUD* hud = nullptr;
-      unsigned int lastDamageTime = 0; // ms
+      Uint64 lastDamageTime = 0; // ms
       
 };
 

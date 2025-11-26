@@ -39,8 +39,9 @@ void HUD::init(int maxH) {
 
     if (heartFull && heart3q && heartHalf && heart1q && heartEmpty) {
         texturesLoaded = true;
-        int w,h;
-        SDL_QueryTexture(heartFull, nullptr, nullptr, &w, &h);
+        float fw, fh;
+        SDL_GetTextureSize(heartFull, &fw, &fh);
+        int w = (int)fw;
         if (w>0) heartSize = w;
         return;
     }
@@ -186,12 +187,13 @@ void HUD::render() {
                 default: TextureManager::Draw(heartEmpty, src, dest); break;
             }
         } else {
+            SDL_FRect destF = { (float)dest.x, (float)dest.y, (float)dest.w, (float)dest.h };
             if (remain >= 1.0f) SDL_SetRenderDrawColor(Game::renderer, 200,30,45,255);
             else if (remain > 0.0f) SDL_SetRenderDrawColor(Game::renderer, 150,40,50,255);
             else SDL_SetRenderDrawColor(Game::renderer, 80,80,80,255);
-            SDL_RenderFillRect(Game::renderer, &dest);
+            SDL_RenderFillRect(Game::renderer, &destF);
             SDL_SetRenderDrawColor(Game::renderer, 0,0,0,255);
-            SDL_RenderDrawRect(Game::renderer, &dest);
+            SDL_RenderRect(Game::renderer, &destF);
         }
     }
 }

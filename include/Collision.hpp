@@ -1,6 +1,6 @@
 #ifndef Collision_hpp
 #define Collision_hpp
-#include <SDL.h>
+#include <SDL3/SDL.h>
 
 class Map;
 

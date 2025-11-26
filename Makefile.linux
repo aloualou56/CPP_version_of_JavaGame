@@ -1,22 +1,22 @@
 # ==========================================
-# Cross-compilation Makefile for Linux to Windows
+# Cross-compilation Makefile for Linux to Windows (SDL3)
 # ==========================================
 CXX = x86_64-w64-mingw32-g++
 
-# SDL2 paths for cross-compilation
-SDL_INCLUDE_PATH = /tmp/SDL2-2.30.9/x86_64-w64-mingw32/include
-SDL_LIB_PATH = /tmp/SDL2-2.30.9/x86_64-w64-mingw32/lib
-SDL_IMAGE_INCLUDE_PATH = /tmp/SDL2_image-2.8.2/x86_64-w64-mingw32/include
-SDL_IMAGE_LIB_PATH = /tmp/SDL2_image-2.8.2/x86_64-w64-mingw32/lib
+# SDL3 paths for cross-compilation
+SDL_INCLUDE_PATH = /tmp/SDL3/x86_64-w64-mingw32/include
+SDL_LIB_PATH = /tmp/SDL3/x86_64-w64-mingw32/lib
+SDL_IMAGE_INCLUDE_PATH = /tmp/SDL3_image/x86_64-w64-mingw32/include
+SDL_IMAGE_LIB_PATH = /tmp/SDL3_image/x86_64-w64-mingw32/lib
 
 # Compiler flags
-CXXFLAGS = -std=c++17 -Wall -Wextra -g -Dmain=SDL_main \
-           -I$(SDL_INCLUDE_PATH) -I$(SDL_INCLUDE_PATH)/SDL2 \
-           -I$(SDL_IMAGE_INCLUDE_PATH) -I$(SDL_IMAGE_INCLUDE_PATH)/SDL2
+CXXFLAGS = -std=c++17 -Wall -Wextra -g \
+           -I$(SDL_INCLUDE_PATH) \
+           -I$(SDL_IMAGE_INCLUDE_PATH) -Iinclude
 
 # Linker flags
 SDL_LIBS = -L$(SDL_LIB_PATH) -L$(SDL_IMAGE_LIB_PATH) \
-           -lmingw32 -lSDL2main -lSDL2 -lSDL2_image \
+           -lmingw32 -lSDL3 -lSDL3_image \
            -static-libgcc -static-libstdc++
 
 # Directories

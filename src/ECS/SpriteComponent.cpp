@@ -69,10 +69,10 @@ void SpriteComponent::draw() {
         // Red line at the computed anchor (feet)
         SDL_SetRenderDrawColor(Game::renderer, 255, 0, 0, 255);
         int anchorScreenY = destRect.y + anchorY;
-        SDL_RenderDrawLine(Game::renderer, destRect.x, anchorScreenY, destRect.x + destRect.w, anchorScreenY);
+        SDL_RenderLine(Game::renderer, (float)destRect.x, (float)anchorScreenY, (float)(destRect.x + destRect.w), (float)anchorScreenY);
         // Small filled rectangle at center-bottom to mark exact point
-        SDL_Rect mark{ destRect.x + destRect.w / 2 - 2, anchorScreenY - 2, 4, 4 };
-        SDL_RenderFillRect(Game::renderer, &mark);
+        SDL_FRect markF{ (float)(destRect.x + destRect.w / 2 - 2), (float)(anchorScreenY - 2), 4.0f, 4.0f };
+        SDL_RenderFillRect(Game::renderer, &markF);
 
         // Restore previous color
         SDL_SetRenderDrawColor(Game::renderer, pr, pg, pb, pa);

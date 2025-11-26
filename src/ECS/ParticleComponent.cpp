@@ -1,6 +1,6 @@
 #include <ECS/ParticleComponent.hpp>
 #include <ECS/ECS.hpp>
-#include <SDL.h>
+#include <SDL3/SDL.h>
 
 ParticleComponent::ParticleComponent(float lifeMs, float vx, float vy, float damp) {
     lifetime = lifeMs;
@@ -23,8 +23,8 @@ void ParticleComponent::update() {
     velocity.x *= damping;
     velocity.y *= damping;
     // Lifetime check
-    Uint32 now = SDL_GetTicks();
-    if (now - born >= (Uint32)lifetime) {
+    Uint64 now = SDL_GetTicks();
+    if (now - born >= (Uint64)lifetime) {
         entity->destroy();
     }
 }

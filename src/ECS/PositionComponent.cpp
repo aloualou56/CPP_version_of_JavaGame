@@ -39,7 +39,7 @@ void PositionComponent::update() {
                     // Pixel-perfect σύγκρουση: ελέγχει την επικάλυψη μεταξύ παίκτη και της άλλης μάσκας
                     SDL_Rect otherRect = cc.collider;
                     SDL_Rect intersect;
-                    if (SDL_IntersectRect(&playerCollider, &otherRect, &intersect)) {
+                    if (SDL_GetRectIntersection(&playerCollider, &otherRect, &intersect)) {
                         // Get player's collider component and mask
                         ColliderComponent* playerCC = nullptr;
                         if (entity->hasComponent<ColliderComponent>()) {

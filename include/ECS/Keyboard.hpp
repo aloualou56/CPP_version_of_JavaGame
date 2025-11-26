@@ -12,7 +12,7 @@ class Keyboard : public Component {
     public:
       PositionComponent *position;
       AnimationComponent *animation;
-    Uint32 lastParticleTime = 0;
+    Uint64 lastParticleTime = 0;
 
       void init() override {
         position = &entity->getComponent<PositionComponent>();
@@ -27,7 +27,7 @@ class Keyboard : public Component {
 
       void update() override {
         // Χρησιμοποιεί συνεχή έλεγχο κατάστασης πληκτρολογίου αντί για διακριτά γεγονότα
-        const Uint8* keyState = SDL_GetKeyboardState(NULL);
+        const bool* keyState = SDL_GetKeyboardState(NULL);
         
         // Επαναφέρει την ταχύτητα κάθε καρέ
         position->velocity.x = 0;
@@ -75,7 +75,7 @@ class Keyboard : public Component {
         }
         // Spawn dust particles when moving (every ~80ms)
         if (isMoving && Game::managerPtr) {
-            Uint32 now = SDL_GetTicks();
+            Uint64 now = SDL_GetTicks();
             if (now - lastParticleTime > 80) {
                 lastParticleTime = now;
                 // spawn behind player relative to velocity (base offsets)

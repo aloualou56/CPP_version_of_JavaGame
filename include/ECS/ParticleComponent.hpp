@@ -4,7 +4,7 @@
 #include "ECS.hpp"
 #include "PositionComponent.hpp"
 #include "../Vector2D.hpp"
-#include <SDL.h>
+#include <SDL3/SDL.h>
 
 class ParticleComponent : public Component {
 public:
@@ -21,11 +21,7 @@ private:
     Vector2D velocity{0,0};
     float damping = 0.95f;
     float lifetime = 500.0f; // ms
-    Uint32 born = 0;
+    Uint64 born = 0;
 };
 
 #endif
-#include <ECS/ECS.hpp>
-#include <ECS/PositionComponent.hpp>
-#include <Vector2D.hpp>
-#include <SDL.h>

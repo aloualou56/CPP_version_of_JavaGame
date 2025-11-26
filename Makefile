@@ -8,31 +8,29 @@ CXX ?= g++
 # This keeps the default simple (`g++`) but allows tools or user to point
 # to an absolute compiler path when needed.
 
-# --- OPTION A: Standard MSYS2 (UCRT64) ---
-# Most common if you followed modern tutorials
-SDL_INCLUDE_PATH = C:/SDL2/include
-SDL_LIB_PATH     = C:/SDL2/lib/x64
+# --- SDL3 Paths ---
+SDL_INCLUDE_PATH = C:/SDL3/include
+SDL_LIB_PATH     = C:/SDL3/lib/x64
 
 # --- OPTION B: Old MSYS2 (MINGW64) ---
 # Uncomment these two lines if Option A fails
 # SDL_INCLUDE_PATH = C:/msys64/mingw64/include
 # SDL_LIB_PATH     = C:/msys64/mingw64/lib
 
-# --- OPTION C: Custom Install (e.g. C:/SDL2_Libs) ---
-# SDL_INCLUDE_PATH = C:/SDL2_Libs/SDL2-2.30.9/x86_64-w64-mingw32/include
-# SDL_LIB_PATH     = C:/SDL2_Libs/SDL2-2.30.9/x86_64-w64-mingw32/lib
+# --- OPTION C: Custom Install (e.g. C:/SDL3_Libs) ---
+# SDL_INCLUDE_PATH = C:/SDL3_Libs/SDL3-3.x.x/x86_64-w64-mingw32/include
+# SDL_LIB_PATH     = C:/SDL3_Libs/SDL3-3.x.x/x86_64-w64-mingw32/lib
 
 
 # ==========================================
 # 2. FLAGS & LIBRARIES
 # ==========================================
-# -Dmain=SDL_main is required for Windows
-# -I points to the include folder so <SDL2/SDL.h> works
-CXXFLAGS = -std=c++17 -Wall -Wextra -g -Dmain=SDL_main -I$(SDL_INCLUDE_PATH) -I$(SDL_INCLUDE_PATH)/SDL2 -Iinclude
+# -I points to the include folder so <SDL3/SDL.h> works
+CXXFLAGS = -std=c++17 -Wall -Wextra -g -I$(SDL_INCLUDE_PATH) -Iinclude
 
 # Linker flags: Must include the library path (-L) and specific libraries (-l)
-# Order matters: mingw32 -> SDL2main -> SDL2 -> SDL2_image
-SDL_LIBS = -L$(SDL_LIB_PATH) -lmingw32 -lSDL2main -lSDL2 -lSDL2_image
+# Order matters: mingw32 -> SDL3 -> SDL3_image
+SDL_LIBS = -L$(SDL_LIB_PATH) -lmingw32 -lSDL3 -lSDL3_image
 
 
 # ==========================================

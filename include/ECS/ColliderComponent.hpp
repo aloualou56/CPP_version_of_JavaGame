@@ -2,7 +2,7 @@
 #define ColliderComponent_hpp
 
 #include <string>
-#include "SDL.h"
+#include <SDL3/SDL.h>
 #include <ECS/ECS.hpp>
 #include <ECS/PositionComponent.hpp>
 #include <ECS/SpriteComponent.hpp>
@@ -85,13 +85,14 @@ class ColliderComponent : public Component {
             }
             // Σχεδιάζει το ορθογώνιο του collider με κόκκινο
             SDL_SetRenderDrawColor(Game::renderer, 255, 0, 0, 255);
-            SDL_RenderDrawRect(Game::renderer, &screenRect);
+            SDL_FRect screenRectF = { (float)screenRect.x, (float)screenRect.y, (float)screenRect.w, (float)screenRect.h };
+            SDL_RenderRect(Game::renderer, &screenRectF);
             // Προαιρετικά, σχεδιάζει τα όρια της μάσκας με πράσινο (κλιμακωμένο)
             if (mask.width > 0 && mask.height > 0) {
                 int sc = position ? position->scale : 1;
-                SDL_Rect maskRect = { screenRect.x + mask.offsetX * sc, screenRect.y + mask.offsetY * sc, mask.width * sc, mask.height * sc };
+                SDL_FRect maskRectF = { (float)(screenRect.x + mask.offsetX * sc), (float)(screenRect.y + mask.offsetY * sc), (float)(mask.width * sc), (float)(mask.height * sc) };
                 SDL_SetRenderDrawColor(Game::renderer, 0, 255, 0, 255);
-                SDL_RenderDrawRect(Game::renderer, &maskRect);
+                SDL_RenderRect(Game::renderer, &maskRectF);
             }
         }
     }

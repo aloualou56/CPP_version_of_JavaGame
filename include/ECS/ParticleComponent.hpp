@@ -4,7 +4,7 @@
 #include "ECS.hpp"
 #include "PositionComponent.hpp"
 #include "../Vector2D.hpp"
-#include <SDL.h>
+#include <SDL3/SDL.h>
 
 class ParticleComponent : public Component {
 public:
@@ -25,7 +25,3 @@ private:
 };
 
 #endif
-#include <ECS/ECS.hpp>
-#include <ECS/PositionComponent.hpp>
-#include <Vector2D.hpp>
-#include <SDL.h>

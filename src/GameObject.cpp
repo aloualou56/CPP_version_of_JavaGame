@@ -13,19 +13,19 @@ void GameObject::Update() {
 
 
 
-    srcRect.h = 48;
-    srcRect.w = 48;
-    srcRect.x = 0;
-    srcRect.y = 0;
+    srcRect.h = 48.0f;
+    srcRect.w = 48.0f;
+    srcRect.x = 0.0f;
+    srcRect.y = 0.0f;
 
-    destRect.x = xpos;
-    destRect.y = ypos;
+    destRect.x = (float)xpos;
+    destRect.y = (float)ypos;
     destRect.w = srcRect.w;
-    destRect.h = srcRect.h * 2;
+    destRect.h = srcRect.h * 2.0f;
 
 }
 
 void GameObject::Render() {
     
-    SDL_RenderCopy(Game::renderer, objTexture, &srcRect, &destRect);
+    SDL_RenderTexture(Game::renderer, objTexture, &srcRect, &destRect);
 }

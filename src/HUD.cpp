@@ -164,7 +164,7 @@ void HUD::render() {
     for (int i = 0; i < maxHealth; ++i) {
         int x = offsetX + i * (heartSize + padding);
         int y = offsetY;
-        SDL_Rect dest = { x, y, heartSize, heartSize };
+        SDL_FRect dest = { (float)x, (float)y, (float)heartSize, (float)heartSize };
 
         float remain = currentHealth - (float)i;
         int quarters = 0;
@@ -177,7 +177,7 @@ void HUD::render() {
         }
 
         if (texturesLoaded) {
-            SDL_Rect src = {0,0,heartSize,heartSize};
+            SDL_FRect src = {0.0f,0.0f,(float)heartSize,(float)heartSize};
             switch (quarters) {
                 case 4: TextureManager::Draw(heartFull, src, dest); break;
                 case 3: TextureManager::Draw(heart3q, src, dest); break;
@@ -186,12 +186,12 @@ void HUD::render() {
                 default: TextureManager::Draw(heartEmpty, src, dest); break;
             }
         } else {
-            if (remain >= 1.0f) SDL_SetRenderDrawColor(Game::renderer, 200,30,45,255);
-            else if (remain > 0.0f) SDL_SetRenderDrawColor(Game::renderer, 150,40,50,255);
-            else SDL_SetRenderDrawColor(Game::renderer, 80,80,80,255);
+            if (remain >= 1.0f) SDL_SetRenderDrawColor(Game::renderer, 200.0f/255.0f, 30.0f/255.0f, 45.0f/255.0f, 1.0f);
+            else if (remain > 0.0f) SDL_SetRenderDrawColor(Game::renderer, 150.0f/255.0f, 40.0f/255.0f, 50.0f/255.0f, 1.0f);
+            else SDL_SetRenderDrawColor(Game::renderer, 80.0f/255.0f, 80.0f/255.0f, 80.0f/255.0f, 1.0f);
             SDL_RenderFillRect(Game::renderer, &dest);
-            SDL_SetRenderDrawColor(Game::renderer, 0,0,0,255);
-            SDL_RenderDrawRect(Game::renderer, &dest);
+            SDL_SetRenderDrawColor(Game::renderer, 0.0f, 0.0f, 0.0f, 1.0f);
+            SDL_RenderRect(Game::renderer, &dest);
         }
     }
 }
@@ -429,7 +429,7 @@ void HUD::init(int maxH) {
         for (int i = 0; i < maxHealth; ++i) {
             int x = offsetX + i * (heartSize + padding);
             int y = offsetY;
-            SDL_Rect dest = { x, y, heartSize, heartSize };
+            SDL_FRect dest = { (float)x, (float)y, (float)heartSize, (float)heartSize };
 
             float remain = currentHealth - (float)i; // e.g., 3.5 means heart index 0..2 full, index 3 half
             int quarters = 0;
@@ -441,7 +441,7 @@ void HUD::init(int maxH) {
             }
 
             if (texturesLoaded) {
-                SDL_Rect src = {0,0,heartSize,heartSize};
+                SDL_FRect src = {0.0f,0.0f,(float)heartSize,(float)heartSize};
                 switch (quarters) {
                     case 4: TextureManager::Draw(heartFull, src, dest); break;
                     case 3: TextureManager::Draw(heart3q, src, dest); break;
@@ -451,12 +451,12 @@ void HUD::init(int maxH) {
                 }
             } else {
                 // fallback simple rectangle
-                if (remain >= 1.0f) SDL_SetRenderDrawColor(Game::renderer, 200,30,45,255);
-                else if (remain > 0.0f) SDL_SetRenderDrawColor(Game::renderer, 150,40,50,255);
-                else SDL_SetRenderDrawColor(Game::renderer, 80,80,80,255);
+                if (remain >= 1.0f) SDL_SetRenderDrawColor(Game::renderer, 200.0f/255.0f, 30.0f/255.0f, 45.0f/255.0f, 1.0f);
+                else if (remain > 0.0f) SDL_SetRenderDrawColor(Game::renderer, 150.0f/255.0f, 40.0f/255.0f, 50.0f/255.0f, 1.0f);
+                else SDL_SetRenderDrawColor(Game::renderer, 80.0f/255.0f, 80.0f/255.0f, 80.0f/255.0f, 1.0f);
                 SDL_RenderFillRect(Game::renderer, &dest);
-                SDL_SetRenderDrawColor(Game::renderer, 0,0,0,255);
-                SDL_RenderDrawRect(Game::renderer, &dest);
+                SDL_SetRenderDrawColor(Game::renderer, 0.0f, 0.0f, 0.0f, 1.0f);
+                SDL_RenderRect(Game::renderer, &dest);
             }
         }
     }
@@ -474,10 +474,10 @@ void HUD::render() {
         int x = offsetX + i * (heartSize + padding);
         int y = offsetY;
 
-        SDL_Rect dest = { x, y, heartSize, heartSize };
+        SDL_FRect dest = { (float)x, (float)y, (float)heartSize, (float)heartSize };
 
         if (texturesLoaded) {
-            SDL_Rect src = { 0, 0, heartSize, heartSize };
+            SDL_FRect src = { 0.0f, 0.0f, (float)heartSize, (float)heartSize };
             if (i < currentHealth) {
                 TextureManager::Draw(heartFull, src, dest);
             } else {
@@ -486,14 +486,14 @@ void HUD::render() {
         } else {
             // Fallback: draw a colored rectangle (red for full, dark gray for empty)
             if (i < currentHealth) {
-                SDL_SetRenderDrawColor(Game::renderer, 200, 30, 45, 255);
+                SDL_SetRenderDrawColor(Game::renderer, 200.0f/255.0f, 30.0f/255.0f, 45.0f/255.0f, 1.0f);
             } else {
-                SDL_SetRenderDrawColor(Game::renderer, 80, 80, 80, 255);
+                SDL_SetRenderDrawColor(Game::renderer, 80.0f/255.0f, 80.0f/255.0f, 80.0f/255.0f, 1.0f);
             }
             SDL_RenderFillRect(Game::renderer, &dest);
             // draw thin border
-            SDL_SetRenderDrawColor(Game::renderer, 0, 0, 0, 255);
-            SDL_RenderDrawRect(Game::renderer, &dest);
+            SDL_SetRenderDrawColor(Game::renderer, 0.0f, 0.0f, 0.0f, 1.0f);
+            SDL_RenderRect(Game::renderer, &dest);
         }
     }
 }

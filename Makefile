@@ -8,31 +8,40 @@ CXX ?= g++
 # This keeps the default simple (`g++`) but allows tools or user to point
 # to an absolute compiler path when needed.
 
-# --- OPTION A: Standard MSYS2 (UCRT64) ---
+# --- OPTION A: Standard MSYS2 (UCRT64) for SDL3 ---
 # Most common if you followed modern tutorials
-SDL_INCLUDE_PATH = C:/SDL2/include
-SDL_LIB_PATH     = C:/SDL2/lib/x64
+SDL_INCLUDE_PATH = C:/SDL3/include
+SDL_LIB_PATH     = C:/SDL3/lib/x64
 
-# --- OPTION B: Old MSYS2 (MINGW64) ---
+# If you installed SDL_image separately, point here (example you provided)
+SDL_IMAGE_INCLUDE = C:/SDL3_image/include
+# Common layout: libraries placed under C:/SDL3_image/lib (or lib/x64). Use plain 'lib' by default.
+SDL_IMAGE_LIB     = C:/SDL3_image/lib
+
+# --- OPTION B: Old MSYS2 (MINGW64) for SDL3 ---
 # Uncomment these two lines if Option A fails
 # SDL_INCLUDE_PATH = C:/msys64/mingw64/include
 # SDL_LIB_PATH     = C:/msys64/mingw64/lib
 
-# --- OPTION C: Custom Install (e.g. C:/SDL2_Libs) ---
-# SDL_INCLUDE_PATH = C:/SDL2_Libs/SDL2-2.30.9/x86_64-w64-mingw32/include
-# SDL_LIB_PATH     = C:/SDL2_Libs/SDL2-2.30.9/x86_64-w64-mingw32/lib
+# --- OPTION C: Custom Install (e.g. C:/SDL3_Libs) ---
+# SDL_INCLUDE_PATH = C:/SDL3_Libs/SDL3-3.x.x/x86_64-w64-mingw32/include
+# SDL_LIB_PATH     = C:/SDL3_Libs/SDL3-3.x.x/x86_64-w64-mingw32/lib
 
 
 # ==========================================
 # 2. FLAGS & LIBRARIES
 # ==========================================
-# -Dmain=SDL_main is required for Windows
-# -I points to the include folder so <SDL2/SDL.h> works
-CXXFLAGS = -std=c++17 -Wall -Wextra -g -Dmain=SDL_main -I$(SDL_INCLUDE_PATH) -I$(SDL_INCLUDE_PATH)/SDL2 -Iinclude
+# -Dmain=SDL_main is no longer required for SDL3 on Windows
+# -I points to the include folder so <SDL3/SDL.h> works
+CXXFLAGS = -std=c++17 -Wall -Wextra -g -I$(SDL_INCLUDE_PATH) -I$(SDL_INCLUDE_PATH)/SDL3 -I$(SDL_IMAGE_INCLUDE) -Iinclude
 
 # Linker flags: Must include the library path (-L) and specific libraries (-l)
-# Order matters: mingw32 -> SDL2main -> SDL2 -> SDL2_image
-SDL_LIBS = -L$(SDL_LIB_PATH) -lmingw32 -lSDL2main -lSDL2 -lSDL2_image
+# SDL3 uses: SDL3 and SDL3_image (no separate main library)
+SDL_LIBS = -L$(SDL_LIB_PATH) -L$(SDL_IMAGE_LIB) -lmingw32 -lSDL3 -lSDL3_image
+
+# At runtime, ensure the SDL3 and SDL3_image DLLs are discoverable, e.g. copy
+# C:/SDL3/bin/* and C:/SDL3_image/bin/* into the folder with Game.exe or add
+# those paths to your PATH environment variable when running the game.
 
 
 # ==========================================
@@ -116,8 +125,10 @@ $(OBJ_DIR)/ParticleComponent.o: $(SRC_DIR)/ECS/ParticleComponent.cpp | $(OBJ_DIR
 
 # --- Clean Rule (Windows Native) ---
 clean:
-	@if exist $(OBJ_DIR) rmdir /s /q $(OBJ_DIR)
-	@if exist $(TARGET) del /f /q $(TARGET)
+	-@if exist $(OBJ_DIR) rmdir /s /q $(OBJ_DIR)
+	-@rm -rf $(OBJ_DIR)
+	-@if exist $(TARGET) del /f /q $(TARGET)
+	-@rm -f $(TARGET)
 
 # Rebuild
 rebuild: clean all

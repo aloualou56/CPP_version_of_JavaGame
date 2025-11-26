@@ -124,7 +124,7 @@ void AnimationComponent::update() {
 
     // Υποθέτουμε ότι το μέγεθος της υφής ταιριάζει με το μέγεθος του component ή σχεδιάζουμε ολόκληρη την υφή.
     // Σε αυτή την περίπτωση, μπορούμε να ρωτήσουμε το μέγεθος της υφής για ασφάλεια, ή απλά να χρησιμοποιήσουμε NULL για το srcRect.
-    // Η χρήση NULL για srcRect στο SDL_RenderCopy σχεδιάζει ολόκληρη την υφή.
+    // Η χρήση NULL για srcRect στο SDL_RenderTexture σχεδιάζει ολόκληρη την υφή.
 }
 
 void AnimationComponent::draw() {

@@ -1,4 +1,7 @@
 #!/bin/bash
+# Set Android SDK path (update <your-username> as needed)
+export ANDROID_SDK_ROOT="/c/Users/hakri/AppData/Local/Android/Sdk"
+
 #
 # build_android.sh - Build Android APK for SDL2 Game
 #
@@ -44,10 +47,12 @@ log_info() {
 
 log_warn() {
     echo -e "${YELLOW}[WARN]${NC} $1"
+    read -p "Press Enter to continue..."
 }
 
 log_error() {
     echo -e "${RED}[ERROR]${NC} $1"
+    read -p "Press Enter to continue..."
 }
 
 show_help() {
@@ -411,23 +416,44 @@ main() {
     
     # Download SDL2 if needed
     download_sdl2
-    
+
     # Build SDL2 for Android
     build_sdl2_for_android
-    
+
+    # --- Automated native library packaging ---
+    log_info "Packaging native libraries into jniLibs..."
+    JNI_LIBS_DIR="$ANDROID_DIR/app/src/main/jniLibs"
+    for ABI in armeabi-v7a arm64-v8a; do
+        mkdir -p "$JNI_LIBS_DIR/$ABI"
+        # Copy SDL2
+        if [ -f "$SDL2_DOWNLOAD_DIR/SDL2/lib/$ABI/libSDL2.so" ]; then
+            cp "$SDL2_DOWNLOAD_DIR/SDL2/lib/$ABI/libSDL2.so" "$JNI_LIBS_DIR/$ABI/"
+        fi
+        # Copy SDL2_image
+        if [ -f "$SDL2_DOWNLOAD_DIR/SDL2_image/lib/$ABI/libSDL2_image.so" ]; then
+            cp "$SDL2_DOWNLOAD_DIR/SDL2_image/lib/$ABI/libSDL2_image.so" "$JNI_LIBS_DIR/$ABI/"
+        fi
+        # Copy your game library (libgame.so)
+        if [ -f "$PROJECT_ROOT/obj/$ABI/libgame.so" ]; then
+            cp "$PROJECT_ROOT/obj/$ABI/libgame.so" "$JNI_LIBS_DIR/$ABI/"
+        else
+            log_warn "libgame.so not found for $ABI in obj/$ABI/. Make sure your native build outputs here."
+        fi
+    done
+
     # Clean if requested
     if [ "$CLEAN" = true ]; then
         clean_build
     fi
-    
+
     # Build the APK
     build_apk
-    
+
     # Sign if requested
     if [ "$SIGN_APK" = true ]; then
         sign_apk
     fi
-    
+
     log_info "Build complete!"
 }
 

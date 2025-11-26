@@ -21,7 +21,7 @@ private:
     Vector2D velocity{0,0};
     float damping = 0.95f;
     float lifetime = 500.0f; // ms
-    Uint32 born = 0;
+    Uint64 born = 0;
 };
 
 #endif

@@ -23,8 +23,8 @@ void ParticleComponent::update() {
     velocity.x *= damping;
     velocity.y *= damping;
     // Lifetime check
-    Uint32 now = SDL_GetTicks();
-    if (now - born >= (Uint32)lifetime) {
+    Uint64 now = SDL_GetTicks();
+    if (now - born >= (Uint64)lifetime) {
         entity->destroy();
     }
 }

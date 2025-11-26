@@ -3,7 +3,7 @@
 
 #include <ECS/ECS.hpp>
 #include <ECS/PositionComponent.hpp>
-#include <SDL.h>
+#include <SDL3/SDL.h>
 #include <iostream>
 
 // Προκαταρκτικές δηλώσεις (forward declarations) για μη-Component κλάσεις
@@ -15,7 +15,7 @@ class SpriteComponent : public Component {
     private:
       PositionComponent *position;
       SDL_Texture *texture;
-      SDL_Rect srcRect, destRect;
+      SDL_FRect srcRect, destRect;
   std::string texturePath;
       // Anchor (pixels from top) used to compute draw order — defaults to sprite bottom
       int anchorY = 0;

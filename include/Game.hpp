@@ -1,8 +1,8 @@
 #ifndef Game_hpp
 #define Game_hpp
 
-#include <SDL.h>
-#include <SDL_image.h>
+#include <SDL3/SDL.h>
+#include <SDL3_image/SDL_image.h>
 #include <iostream>
 #include "ECS/ECS.hpp"
 

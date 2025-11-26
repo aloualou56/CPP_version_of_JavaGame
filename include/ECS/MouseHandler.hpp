@@ -18,15 +18,15 @@ public:
         attacking = false;
         
         // Ελέγχει για πάτημα κουμπιού ποντικιού
-        if (Game::event.type == SDL_MOUSEBUTTONDOWN) {
+        if (Game::event.type == SDL_EVENT_MOUSE_BUTTON_DOWN) {
             if (Game::event.button.button == SDL_BUTTON_LEFT) {
                 attacking = true;
             }
         }
         
         // Επίσης ελέγχει για επίθεση με πλήκτρο R (εναλλακτική από πληκτρολόγιο)
-        if (Game::event.type == SDL_KEYDOWN) {
-            if (Game::event.key.keysym.sym == SDLK_r) {
+        if (Game::event.type == SDL_EVENT_KEY_DOWN) {
+            if (Game::event.key.key == SDLK_R) {
                 attacking = true;
             }
         }

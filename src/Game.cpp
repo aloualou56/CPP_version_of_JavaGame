@@ -20,6 +20,8 @@
 
 #include <vector>
 
+#include <cmath>
+
 
 EnvironmentAssets* environmentAssets = nullptr;
 
@@ -27,6 +29,17 @@ SDL_Renderer* Game::renderer = nullptr;
 SDL_Event Game::event;
 Camera* Game::camera = nullptr;
 Map* Game::map = nullptr;
+
+// Screen and touch/multitouch state (Android)
+int Game::screenWidth = 0;
+int Game::screenHeight = 0;
+long long Game::movementFingerId = -1;
+long long Game::attackFingerId = -1;
+bool Game::movementActive = false;
+float Game::movementDX = 0.0f;
+float Game::movementDY = 0.0f;
+bool Game::attackActive = false;
+SDL_Haptic *Game::haptic = nullptr;
 
 Manager manager;
 auto& player(manager.addEntity());
@@ -43,6 +56,10 @@ void Game::init(const char *title, int xpos, int ypos, int width, int height, bo
     Uint32 flags = 0;
     if(fullscreen) flags = SDL_WINDOW_FULLSCREEN;
 
+    // Determine actual window size (on Android the provided width/height may be 0)
+    int actualW = width;
+    int actualH = height;
+
     if(SDL_Init(SDL_INIT_VIDEO | SDL_INIT_EVENTS)) {
         SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "SDL_Init succeeded");
 
@@ -57,15 +74,25 @@ void Game::init(const char *title, int xpos, int ypos, int width, int height, bo
             SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "Renderer created successfully");
         }
 
+        // Update actual window size if needed
+        if (actualW == 0 || actualH == 0) {
+            SDL_GetWindowSize(window, &actualW, &actualH);
+            if (actualW == 0 || actualH == 0) {
+                // If we still don't have a size, use a sensible default
+                actualW = 1280;
+                actualH = 720;
+            }
+        }
+        
         // Show a simple loading screen so the window appears responsive while textures load
         if (renderer) {
             SDL_SetRenderDrawColor(renderer, 20, 20, 20, 255);
             SDL_RenderClear(renderer);
             SDL_SetRenderDrawColor(renderer, 200, 200, 200, 255);
-            SDL_FRect box{ (float)(width/2 - 120), (float)(height/2 - 20), 240.0f, 40.0f };
+            SDL_FRect box{ (float)(actualW/2 - 120), (float)(actualH/2 - 20), 240.0f, 40.0f };
             SDL_RenderFillRect(renderer, &box);
             SDL_SetRenderDrawColor(renderer, 40, 40, 40, 255);
-            SDL_FRect inner{ (float)(width/2 - 110), (float)(height/2 - 10), 220.0f, 20.0f };
+            SDL_FRect inner{ (float)(actualW/2 - 110), (float)(actualH/2 - 10), 220.0f, 20.0f };
             SDL_RenderFillRect(renderer, &inner);
             SDL_RenderPresent(renderer);
             SDL_Delay(50);
@@ -74,6 +101,19 @@ void Game::init(const char *title, int xpos, int ypos, int width, int height, bo
 
         srand((unsigned int)SDL_GetTicks());
         SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "Finished initial window/renderer setup");
+        // record screen size for touch mapping (use actual sizes)
+        Game::screenWidth = actualW;
+        Game::screenHeight = actualH;
+        // Try to initialize haptic (optional)
+        if (SDL_InitSubSystem(SDL_INIT_HAPTIC) == 0) {
+            Game::haptic = SDL_OpenHaptic(0);
+            if (Game::haptic) {
+                if (SDL_InitHapticRumble(Game::haptic) != 0) {
+                    SDL_CloseHaptic(Game::haptic);
+                    Game::haptic = nullptr;
+                }
+            }
+        }
         isRunning = true;
     } else {
         SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "SDL_Init failed: %s", SDL_GetError());
@@ -81,7 +121,7 @@ void Game::init(const char *title, int xpos, int ypos, int width, int height, bo
     }
 
     map = new Map();
-    camera = new Camera(width, height);
+    camera = new Camera(actualW, actualH);
     this->hud = new HUD();
     Game::managerPtr = &manager;
 
@@ -202,9 +242,67 @@ void Game::handleEvents() {
                 if (event.key.key == SDLK_R && event.key.repeat == 0) {
                     if (player.hasComponent<AnimationComponent>()) {
                         player.getComponent<AnimationComponent>().play("Attack", false);
+                        // haptic feedback on keyboard attack too
+                        if (Game::haptic) SDL_PlayHapticRumble(Game::haptic, 0.5f, 80);
                     }
                 }
                 break;
+            case SDL_EVENT_FINGER_DOWN: {
+                long long fid = (long long)event.tfinger.fingerID;
+                float fx = event.tfinger.x * (float)Game::screenWidth;
+                float fy = event.tfinger.y * (float)Game::screenHeight;
+                if (fx < (Game::screenWidth / 2) && Game::movementFingerId == -1) {
+                    Game::movementFingerId = fid;
+                    Game::movementActive = true;
+                    // compute movementDX/DY relative to joystick center (match visual at 5% + half width)
+                    float jbW = 160.0f;
+                    float cx = (Game::screenWidth * 0.05f) + jbW / 2.0f;
+                    float cy = (Game::screenHeight * 0.65f) + jbW / 2.0f;
+                    float dx = fx - cx;
+                    float dy = fy - cy;
+                    float maxr = 64.0f;
+                    Game::movementDX = fmaxf(-1.0f, fminf(1.0f, dx / maxr));
+                    Game::movementDY = fmaxf(-1.0f, fminf(1.0f, dy / maxr));
+                } else if (fx >= (Game::screenWidth / 2) && Game::attackFingerId == -1) {
+                    Game::attackFingerId = fid;
+                    Game::attackActive = true;
+                    // trigger attack
+                    if (player.hasComponent<AnimationComponent>()) player.getComponent<AnimationComponent>().play("Attack", false);
+                    if (Game::haptic) SDL_PlayHapticRumble(Game::haptic, 0.6f, 80);
+                }
+                break; }
+            case SDL_EVENT_FINGER_UP: {
+                long long fid = (long long)event.tfinger.fingerID;
+                if (fid == Game::movementFingerId) {
+                    Game::movementFingerId = -1;
+                    Game::movementActive = false;
+                    Game::movementDX = 0.0f; Game::movementDY = 0.0f;
+                }
+                if (fid == Game::attackFingerId) {
+                    Game::attackFingerId = -1;
+                    Game::attackActive = false;
+                }
+                break; }
+            case SDL_EVENT_FINGER_MOTION: {
+                long long fid = (long long)event.tfinger.fingerID;
+                float fx = event.tfinger.x * (float)Game::screenWidth;
+                float fy = event.tfinger.y * (float)Game::screenHeight;
+                if (fid == Game::movementFingerId) {
+                    float jbW = 160.0f;
+                    float cx = (Game::screenWidth * 0.05f) + jbW / 2.0f;
+                    float cy = (Game::screenHeight * 0.65f) + jbW / 2.0f;
+                    float dx = fx - cx;
+                    float dy = fy - cy;
+                    float maxr = 64.0f;
+                    Game::movementDX = fmaxf(-1.0f, fminf(1.0f, dx / maxr));
+                    Game::movementDY = fmaxf(-1.0f, fminf(1.0f, dy / maxr));
+                    Game::movementActive = true;
+                }
+                if (fid == Game::attackFingerId) {
+                    Game::attackActive = true;
+                }
+                break; }
+            
             default:
                 break;
         }
@@ -262,5 +360,34 @@ void Game::render() {
     map->DrawMap(camera);
     manager.draw();
     if (this->hud) this->hud->render();
+    // Draw simple on-screen controls for Android
+#ifdef __ANDROID__
+    // semi-transparent overlay
+    SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
+    // Joystick base (bottom-left) - use float rects for SDL3
+    float jbW = 160.0f, jbH = 160.0f;
+    float jbX = Game::screenWidth * 0.05f;
+    float jbY = Game::screenHeight * 0.65f;
+    SDL_SetRenderDrawColor(renderer, 0, 0, 0, 96);
+    SDL_FRect jb{jbX, jbY, jbW, jbH};
+    SDL_RenderFillRect(renderer, &jb);
+    // Joystick knob
+    float cx = jbX + jbW/2.0f;
+    float cy = jbY + jbH/2.0f;
+    float radius = 48.0f;
+    float kx = cx + (Game::movementDX * (jbW/2.0f - radius));
+    float ky = cy + (Game::movementDY * (jbH/2.0f - radius));
+    SDL_SetRenderDrawColor(renderer, 200, 200, 200, 200);
+    SDL_FRect knob{ kx - radius/2.0f, ky - radius/2.0f, radius, radius };
+    SDL_RenderFillRect(renderer, &knob);
+
+    // Attack button (bottom-right)
+    float abW = 120.0f, abH = 120.0f;
+    float abX = (float)Game::screenWidth - (Game::screenWidth * 0.05f) - abW;
+    float abY = Game::screenHeight * 0.70f;
+    SDL_SetRenderDrawColor(renderer, 180, 30, 30, Game::attackActive ? 220 : 120);
+    SDL_FRect ab{ abX, abY, abW, abH };
+    SDL_RenderFillRect(renderer, &ab);
+#endif
     SDL_RenderPresent(renderer);
 }

@@ -11,6 +11,10 @@ Map::Map() {
     water = TextureManager::LoadTexture("sprites/tilesets/16x16 set/grass2.png");
     stone = TextureManager::LoadTexture("sprites/tilesets/16x16 set/dirt2.png");
 
+    // Log texture loading status
+    SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "Map textures loaded: grass=%p dirt=%p water=%p stone=%p", 
+                (void*)grass, (void*)dirt, (void*)water, (void*)stone);
+
     // Αρχικοποιεί τον πίνακα του χάρτη
     for(int i = 0; i < MAP_HEIGHT; i++) {
         for(int j = 0; j < MAP_WIDTH; j++) {

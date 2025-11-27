@@ -26,33 +26,34 @@ class Keyboard : public Component {
       }
 
       void update() override {
-        // Χρησιμοποιεί συνεχή έλεγχο κατάστασης πληκτρολογίου αντί για διακριτά γεγονότα
-        const bool* keyState = SDL_GetKeyboardState(NULL);
-        
-        // Επαναφέρει την ταχύτητα κάθε καρέ
+        // Reset velocity each frame
         position->velocity.x = 0;
         position->velocity.y = 0;
-        
-        // Παρακολουθεί αν υπάρχει οποιαδήποτε κίνηση
+
+        // Track whether the player is moving
         bool isMoving = false;
-        
-        // Ελέγχει όλα τα πλήκτρα κίνησης και θέτει την ταχύτητα
-        if (keyState[SDL_SCANCODE_W]) {
-            position->velocity.y = -1;
-            isMoving = true;
+
+#ifdef __ANDROID__
+        // On Android use movementDX/movementDY from Game (multi-touch aware)
+        if (Game::movementActive) {
+            const float dead = 0.25f; // normalized deadzone
+            if (Game::movementDX > dead) { position->velocity.x = 1; isMoving = true; }
+            else if (Game::movementDX < -dead) { position->velocity.x = -1; isMoving = true; }
+            if (Game::movementDY > dead) { position->velocity.y = 1; isMoving = true; }
+            else if (Game::movementDY < -dead) { position->velocity.y = -1; isMoving = true; }
+            if (animation) animation->setFlip(Game::movementDX < 0.0f);
         }
-        if (keyState[SDL_SCANCODE_S]) {
-            position->velocity.y = 1;
-            isMoving = true;
+        if (Game::attackActive) {
+            if (animation && !animation->isBusy()) animation->play("Attack", false);
         }
-        if (keyState[SDL_SCANCODE_A]) {
-            position->velocity.x = -1;
-            isMoving = true;
-        }
-        if (keyState[SDL_SCANCODE_D]) {
-            position->velocity.x = 1;
-            isMoving = true;
-        }
+    #else
+        // Use keyboard on non-Android platforms
+        const bool* keyState = SDL_GetKeyboardState(NULL);
+        if (keyState[SDL_SCANCODE_W]) { position->velocity.y = -1; isMoving = true; }
+        if (keyState[SDL_SCANCODE_S]) { position->velocity.y = 1; isMoving = true; }
+        if (keyState[SDL_SCANCODE_A]) { position->velocity.x = -1; isMoving = true; }
+        if (keyState[SDL_SCANCODE_D]) { position->velocity.x = 1; isMoving = true; }
+#endif
         
         // Ενημερώνει το animation με βάση την κατάσταση κίνησης, αλλά δεν διακόπτει μη-επαναλαμβανόμενες animations
         if (animation) {
@@ -64,14 +65,15 @@ class Keyboard : public Component {
                 }
             }
         }
-        // Ορίζει την κατεύθυνση που κοιτάει: A = αριστερά (flip), D = δεξιά (χωρίς flip)
+        // On non-Android the direction is determined from keyboard
+        // (on Android we already set flip during touch handling above)
         if (animation) {
-            if (keyState[SDL_SCANCODE_A]) {
-                animation->setFlip(true);
-            } else if (keyState[SDL_SCANCODE_D]) {
-                animation->setFlip(false);
-            }
-            // Attack is handled in Game event loop to ensure a single trigger per keydown
+#ifndef __ANDROID__
+            const bool* keyState2 = SDL_GetKeyboardState(NULL);
+            if (keyState2[SDL_SCANCODE_A]) { animation->setFlip(true); }
+            else if (keyState2[SDL_SCANCODE_D]) { animation->setFlip(false); }
+#endif
+            // Attack is handled either by Game event loop (keyboard) or via touch above
         }
         // Spawn dust particles when moving (every ~80ms)
         if (isMoving && Game::managerPtr) {

@@ -29,6 +29,18 @@ class Game {
       static SDL_Event event;
       static Camera* camera;
       static Map* map;
+      // screen size (set on init)
+      static int screenWidth;
+      static int screenHeight;
+      // Simple touch/multi-touch state for Android controls
+      static long long movementFingerId; // finger id tracking movement (-1 = none)
+      static long long attackFingerId;   // finger id tracking attack (-1 = none)
+      static bool movementActive;
+      static float movementDX; // -1..1
+      static float movementDY; // -1..1
+      static bool attackActive;
+      // Haptic device (optional)
+      static SDL_Haptic *haptic;
       // Εκθέτει τον παγκόσμιο manager που ορίζεται στο `Game.cpp`
       static Manager* managerPtr;
       // Παγκόσμιος διακόπτης debug για εμφάνιση/απόκρυψη οπτικών/καταγραφών debug

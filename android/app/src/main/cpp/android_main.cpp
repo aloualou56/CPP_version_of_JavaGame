@@ -20,7 +20,7 @@
 #define LOGE(...) __android_log_print(ANDROID_LOG_ERROR, LOG_TAG, __VA_ARGS__)
 
 // Frame rate settings
-#define FPS 30
+#define FPS 60
 
 // Global game instance
 static Game* game = nullptr;

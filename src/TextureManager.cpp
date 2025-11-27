@@ -205,6 +205,10 @@ void TextureManager::Draw(SDL_Texture *tex, SDL_FRect src, SDL_FRect dest) {
 }
 
 void TextureManager::Draw(SDL_Texture *tex, SDL_FRect src, SDL_FRect dest, SDL_FlipMode flip) {
+    // Skip rendering if texture is null (failed to load)
+    if (!tex) {
+        return;
+    }
     // Χρήση SDL_RenderTextureRotated για να επιτρέπεται ο οριζόντιος κατοπτρισμός (flip) του χαρακτήρα
     SDL_RenderTextureRotated(Game::renderer, tex, &src, &dest, 0.0, nullptr, flip);
 }

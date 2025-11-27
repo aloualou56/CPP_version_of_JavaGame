@@ -46,3 +46,6 @@ android/jdk-*
 # Ignore APKs in android directory but keep Game.apk in root
 android/**/*.apk
 !Game.apk
+
+
+jdk-17

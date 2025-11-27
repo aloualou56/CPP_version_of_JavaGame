@@ -54,13 +54,8 @@ android {
     }
 
     compileOptions {
-<<<<<<< HEAD
-        sourceCompatibility JavaVersion.VERSION_1_8
-        targetCompatibility JavaVersion.VERSION_1_8
-=======
         sourceCompatibility JavaVersion.VERSION_17
         targetCompatibility JavaVersion.VERSION_17
->>>>>>> SDL3
     }
 
     packaging {
@@ -72,9 +67,6 @@ android {
 
 dependencies {
     implementation 'androidx.appcompat:appcompat:1.6.1'
-<<<<<<< HEAD
-=======
     implementation files('src/main/cpp/SDL3/SDL3-3.2.26.aar')
     implementation files('src/main/cpp/SDL3_image/SDL3_image-3.2.4.aar')
->>>>>>> SDL3
 }

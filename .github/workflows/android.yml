@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 env:
   SDL3_VERSION: "3.2.26"
@@ -139,7 +139,11 @@ jobs:
         MANIFEST="$ASSETS_DIR/asset_list.txt"
         > "$MANIFEST"
         for EXT in png jpg bmp; do
-          find sprites assets -name "*.$EXT" 2>/dev/null | sort >> "$MANIFEST" || true
+          for DIR in sprites assets maps; do
+            if [ -d "$DIR" ]; then
+              find "$DIR" -name "*.$EXT" 2>/dev/null | sort >> "$MANIFEST" || true
+            fi
+          done
         done
         
         if [ -f "$MANIFEST" ]; then
@@ -161,7 +165,16 @@ jobs:
         KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
       run: |
         # Find the debug APK
-        UNSIGNED_APK=$(find android/app/build/outputs/apk/debug -name "*.apk" | head -1)
+        APK_DIR="android/app/build/outputs/apk/debug"
+        if [ ! -d "$APK_DIR" ]; then
+          echo "ERROR: APK output directory not found!"
+          exit 1
+        fi
+        UNSIGNED_APK=$(find "$APK_DIR" -name "*.apk" | head -1)
+        if [ -z "$UNSIGNED_APK" ]; then
+          echo "ERROR: No APK file found in $APK_DIR"
+          exit 1
+        fi
         ALIGNED_APK="android/app/build/outputs/apk/debug/app-debug-aligned.apk"
         SIGNED_APK="android/app/build/outputs/apk/debug/app-debug-signed.apk"
         

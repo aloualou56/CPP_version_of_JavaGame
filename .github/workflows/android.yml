@@ -1,20 +1,6 @@
 name: Android Build
 
 on:
-  push:
-    branches: [ main, master, SDL3 ]
-    paths:
-      - 'src/**'
-      - 'include/**'
-      - 'android/**'
-      - '.github/workflows/android.yml'
-  pull_request:
-    branches: [ main, master, SDL3 ]
-    paths:
-      - 'src/**'
-      - 'include/**'
-      - 'android/**'
-      - '.github/workflows/android.yml'
   workflow_dispatch:
 
 # Permissions for the GITHUB_TOKEN

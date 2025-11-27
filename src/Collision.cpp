@@ -1,11 +1,7 @@
 #include <Collision.hpp>
 #include <Map.hpp>
 
-<<<<<<< HEAD
-bool Collision::AABB(const SDL_Rect& recA, const SDL_Rect& recB) {
-=======
 bool Collision::AABB(const SDL_FRect& recA, const SDL_FRect& recB) {
->>>>>>> SDL3
     // Τυπική δοκιμή επικάλυψης AABB (χωρίς επιπλέον περιθώρια)
     if (recA.x < recB.x + recB.w &&
         recA.x + recA.w > recB.x &&

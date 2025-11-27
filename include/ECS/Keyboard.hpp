@@ -27,11 +27,7 @@ class Keyboard : public Component {
 
       void update() override {
         // Χρησιμοποιεί συνεχή έλεγχο κατάστασης πληκτρολογίου αντί για διακριτά γεγονότα
-<<<<<<< HEAD
-        const Uint8* keyState = SDL_GetKeyboardState(NULL);
-=======
         const bool* keyState = SDL_GetKeyboardState(NULL);
->>>>>>> SDL3
         
         // Επαναφέρει την ταχύτητα κάθε καρέ
         position->velocity.x = 0;

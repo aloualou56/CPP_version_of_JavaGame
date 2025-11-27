@@ -1,10 +1,7 @@
 #!/bin/bash
-<<<<<<< HEAD
-=======
 # Set Android SDK path (update <your-username> as needed)
 export ANDROID_SDK_ROOT="/c/Users/hakri/AppData/Local/Android/Sdk"
 
->>>>>>> SDL3
 #
 # build_android.sh - Build Android APK for SDL2 Game
 #
@@ -50,18 +47,12 @@ log_info() {
 
 log_warn() {
     echo -e "${YELLOW}[WARN]${NC} $1"
-<<<<<<< HEAD
-=======
     read -p "Press Enter to continue..."
->>>>>>> SDL3
 }
 
 log_error() {
     echo -e "${RED}[ERROR]${NC} $1"
-<<<<<<< HEAD
-=======
     read -p "Press Enter to continue..."
->>>>>>> SDL3
 }
 
 show_help() {
@@ -425,12 +416,6 @@ main() {
     
     # Download SDL2 if needed
     download_sdl2
-<<<<<<< HEAD
-    
-    # Build SDL2 for Android
-    build_sdl2_for_android
-    
-=======
 
     # Build SDL2 for Android
     build_sdl2_for_android
@@ -456,31 +441,19 @@ main() {
         fi
     done
 
->>>>>>> SDL3
     # Clean if requested
     if [ "$CLEAN" = true ]; then
         clean_build
     fi
-<<<<<<< HEAD
-    
-    # Build the APK
-    build_apk
-    
-=======
 
     # Build the APK
     build_apk
 
->>>>>>> SDL3
     # Sign if requested
     if [ "$SIGN_APK" = true ]; then
         sign_apk
     fi
-<<<<<<< HEAD
-    
-=======
 
->>>>>>> SDL3
     log_info "Build complete!"
 }
 

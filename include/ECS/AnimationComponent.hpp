@@ -3,11 +3,7 @@
 
 #include <ECS/ECS.hpp>
 #include <ECS/PositionComponent.hpp>
-<<<<<<< HEAD
-#include "SDL.h"
-=======
 #include "SDL3/SDL.h"
->>>>>>> SDL3
 #include <map>
 #include <vector>
 #include <string>
@@ -26,17 +22,10 @@ private:
     int animIndex = 0;
     int animSpeed = 100;
     
-<<<<<<< HEAD
-    SDL_Rect srcRect, destRect;
-    PositionComponent* position;
-    
-    Uint32 lastFrameTime = 0;
-=======
     SDL_FRect srcRect, destRect;
     PositionComponent* position;
     
     Uint64 lastFrameTime = 0;
->>>>>>> SDL3
     bool animated = false;
     bool flip = false;
     std::map<std::string, bool> animationLooping;

@@ -22,21 +22,12 @@ void PositionComponent::update() {
 
     // Check collision with entity colliders (rocks, trees, etc.)
     if (Game::managerPtr) {
-<<<<<<< HEAD
-        SDL_Rect playerCollider;
-        // Το collider του παίκτη ταιριάζει με το μέγεθος του εμφανιζόμενου sprite
-        playerCollider.x = static_cast<int>(position.x);
-        playerCollider.y = static_cast<int>(position.y);
-        playerCollider.w = width * scale;
-        playerCollider.h = height * scale;
-=======
         SDL_FRect playerCollider;
         // Το collider του παίκτη ταιριάζει με το μέγεθος του εμφανιζόμενου sprite
         playerCollider.x = position.x;
         playerCollider.y = position.y;
         playerCollider.w = (float)(width * scale);
         playerCollider.h = (float)(height * scale);
->>>>>>> SDL3
 
         for (const auto& ePtr : Game::managerPtr->getEntities()) {
             Entity* other = ePtr.get();
@@ -46,15 +37,9 @@ void PositionComponent::update() {
                 // Για αντικείμενα με μάσκα, χρησιμοποιεί pixel-perfect σύγκριση αν υπάρχει
                 if (cc.mask.width > 0) {
                     // Pixel-perfect σύγκρουση: ελέγχει την επικάλυψη μεταξύ παίκτη και της άλλης μάσκας
-<<<<<<< HEAD
-                    SDL_Rect otherRect = cc.collider;
-                    SDL_Rect intersect;
-                    if (SDL_IntersectRect(&playerCollider, &otherRect, &intersect)) {
-=======
                     SDL_FRect otherRect = cc.collider;
                     SDL_FRect intersect;
                     if (SDL_GetRectIntersectionFloat(&playerCollider, &otherRect, &intersect)) {
->>>>>>> SDL3
                         // Get player's collider component and mask
                         ColliderComponent* playerCC = nullptr;
                         if (entity->hasComponent<ColliderComponent>()) {

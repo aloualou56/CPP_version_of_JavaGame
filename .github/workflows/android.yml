@@ -2,14 +2,14 @@ name: Android Build
 
 on:
   push:
-    branches: [ main, master ]
+    branches: [ main, master, SDL3 ]
     paths:
       - 'src/**'
       - 'include/**'
       - 'android/**'
       - '.github/workflows/android.yml'
   pull_request:
-    branches: [ main, master ]
+    branches: [ main, master, SDL3 ]
     paths:
       - 'src/**'
       - 'include/**'
@@ -22,35 +22,32 @@ permissions:
   contents: write
 
 env:
-  SDL2_VERSION: "2.28.5"
-  SDL2_IMAGE_VERSION: "2.8.2"
+  SDL3_VERSION: "3.2.26"
+  SDL3_IMAGE_VERSION: "3.2.4"
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: windows-latest
     
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
 
-    - name: Set up JDK 17
-      uses: actions/setup-java@v4
-      with:
-        java-version: '17'
-        distribution: 'temurin'
-
     - name: Setup Android SDK
       uses: android-actions/setup-android@v3
 
     - name: Install Android SDK components
+      shell: pwsh
       run: |
-        sdkmanager --install "ndk;23.1.7779620"
-        sdkmanager --install "build-tools;34.0.0"
-        sdkmanager --install "platforms;android-34"
-        sdkmanager --install "cmake;3.22.1"
-        # Set ANDROID_NDK_HOME to use the installed NDK version (23.x) instead of the default (27.x)
-        # This is required because SDL2 2.28.5 uses ALooper_pollAll which is unavailable in NDK 27+
-        echo "ANDROID_NDK_HOME=$ANDROID_SDK_ROOT/ndk/23.1.7779620" >> $GITHUB_ENV
+        & "$env:ANDROID_SDK_ROOT\cmdline-tools\latest\bin\sdkmanager.bat" --install "ndk;23.1.7779620"
+        & "$env:ANDROID_SDK_ROOT\cmdline-tools\latest\bin\sdkmanager.bat" --install "build-tools;34.0.0"
+        & "$env:ANDROID_SDK_ROOT\cmdline-tools\latest\bin\sdkmanager.bat" --install "platforms;android-34"
+        & "$env:ANDROID_SDK_ROOT\cmdline-tools\latest\bin\sdkmanager.bat" --install "cmake;3.22.1"
+        
+        # Set ANDROID_NDK_HOME environment variable for the rest of the workflow
+        $ndkPath = Join-Path $env:ANDROID_SDK_ROOT "ndk\23.1.7779620"
+        Add-Content $env:GITHUB_ENV "ANDROID_NDK_HOME=$ndkPath"
+        Add-Content $env:GITHUB_ENV "ANDROID_HOME=$env:ANDROID_SDK_ROOT"
 
     - name: Cache Gradle packages
       uses: actions/cache@v4
@@ -62,216 +59,71 @@ jobs:
         restore-keys: |
           ${{ runner.os }}-gradle-
 
-    - name: Cache SDL2 native libraries only
+    - name: Cache SDL3 native libraries
       uses: actions/cache@v4
       with:
         path: |
-          android/app/src/main/cpp/SDL2
-          android/app/src/main/cpp/SDL2_image
-        key: ${{ runner.os }}-sdl2-v3-${{ env.SDL2_VERSION }}-${{ env.SDL2_IMAGE_VERSION }}
+          android/app/src/main/cpp/SDL3
+          android/app/src/main/cpp/SDL3_image
+        key: ${{ runner.os }}-sdl3-v1-${{ env.SDL3_VERSION }}-${{ env.SDL3_IMAGE_VERSION }}
 
-    - name: Download and Setup SDL2 for Android
+    - name: Download and Setup SDL3 for Android
+      shell: pwsh
       run: |
-        cd android/app/src/main/cpp
+        cd android
         
-        # Set up paths
-        SDL2_JAVA_DIR="../../java/org/libsdl/app"
-        
-        # ALWAYS download SDL2 and copy Java files (they're small and essential)
-        echo "=== Downloading SDL2 source for Java files ==="
-        rm -rf SDL2-source
-        curl -L -o SDL2.tar.gz "https://github.com/libsdl-org/SDL/releases/download/release-${SDL2_VERSION}/SDL2-${SDL2_VERSION}.tar.gz"
-        tar -xzf SDL2.tar.gz
-        mv "SDL2-${SDL2_VERSION}" SDL2-source
-        rm SDL2.tar.gz
-        
-        # ALWAYS copy SDL Java files (overwrite if exists)
-        echo "=== Copying SDL2 Java files ==="
-        rm -rf "$SDL2_JAVA_DIR"
-        mkdir -p "$SDL2_JAVA_DIR"
-        cp -v SDL2-source/android-project/app/src/main/java/org/libsdl/app/*.java "$SDL2_JAVA_DIR/"
-        
-        # Verify the copy
-        echo "=== Verifying SDL2 Java files ==="
-        ls -la "$SDL2_JAVA_DIR/"
-        
-        # Check if SDL2 native includes need to be set up (use cache)
-        if [ ! -d "SDL2/include" ]; then
-          echo "=== SDL2 includes not found, setting up ==="
-          mkdir -p SDL2/include SDL2/lib
-          cp -r SDL2-source/include/* SDL2/include/
-        else
-          echo "=== SDL2 includes already cached ==="
-        fi
-        
-        # Download SDL2_image source if not cached
-        if [ ! -d "SDL2_image/include" ]; then
-          echo "=== Downloading SDL2_image ==="
-          rm -rf SDL2_image-source
-          
-          curl -L -o SDL2_image.tar.gz "https://github.com/libsdl-org/SDL_image/releases/download/release-${SDL2_IMAGE_VERSION}/SDL2_image-${SDL2_IMAGE_VERSION}.tar.gz"
-          tar -xzf SDL2_image.tar.gz
-          mv "SDL2_image-${SDL2_IMAGE_VERSION}" SDL2_image-source
-          
-          mkdir -p SDL2_image/include SDL2_image/lib
-          cp SDL2_image-source/*.h SDL2_image/include/ 2>/dev/null || true
-          cp SDL2_image-source/include/*.h SDL2_image/include/ 2>/dev/null || true
-          
-          rm SDL2_image.tar.gz
-        else
-          echo "=== SDL2_image includes already cached ==="
-        fi
-        
-        # Final verification
-        echo "=== Final verification ==="
-        echo "SDL2 Java files:"
-        ls -la "$SDL2_JAVA_DIR/"
-        echo "SDL2 includes:"
-        ls SDL2/include/ | head -5
-
-    - name: Build SDL2 native libraries
-      run: |
-        cd android/app/src/main/cpp
-        
-        # Build SDL2 for each ABI using CMake
-        for ABI in armeabi-v7a arm64-v8a; do
-          if [ ! -f "SDL2/lib/$ABI/libSDL2.so" ] && [ -d "SDL2-source" ]; then
-            echo "Building SDL2 for $ABI..."
-            mkdir -p "SDL2-build-$ABI"
-            cd "SDL2-build-$ABI"
-            
-            cmake ../SDL2-source \
-              -DCMAKE_TOOLCHAIN_FILE=$ANDROID_NDK_HOME/build/cmake/android.toolchain.cmake \
-              -DANDROID_ABI=$ABI \
-              -DANDROID_PLATFORM=android-21 \
-              -DCMAKE_BUILD_TYPE=Release \
-              -DSDL_SHARED=ON \
-              -DSDL_STATIC=OFF
-            
-            cmake --build . --config Release -j$(nproc) || true
-            
-            cd ..
-            mkdir -p "SDL2/lib/$ABI"
-            find "SDL2-build-$ABI" -name "libSDL2.so" -exec cp {} "SDL2/lib/$ABI/" \; 2>/dev/null || true
-            rm -rf "SDL2-build-$ABI"
-          fi
-        done
-        
-        # Build SDL2_image for each ABI
-        for ABI in armeabi-v7a arm64-v8a; do
-          if [ ! -f "SDL2_image/lib/$ABI/libSDL2_image.so" ] && [ -d "SDL2_image-source" ]; then
-            echo "Building SDL2_image for $ABI..."
-            mkdir -p "SDL2_image-build-$ABI"
-            cd "SDL2_image-build-$ABI"
-            
-            # Get paths to SDL2 include and library directories
-            SDL2_INCLUDE_DIR=$(pwd)/../SDL2/include
-            SDL2_LIB_DIR=$(pwd)/../SDL2/lib/$ABI
-            
-            # SDL2_image needs to know where SDL2 is - use CMAKE_PREFIX_PATH and explicit include/lib paths
-            cmake ../SDL2_image-source \
-              -DCMAKE_TOOLCHAIN_FILE=$ANDROID_NDK_HOME/build/cmake/android.toolchain.cmake \
-              -DANDROID_ABI=$ABI \
-              -DANDROID_PLATFORM=android-21 \
-              -DCMAKE_BUILD_TYPE=Release \
-              -DSDL2_INCLUDE_DIR=$SDL2_INCLUDE_DIR \
-              -DSDL2_LIBRARY=$SDL2_LIB_DIR/libSDL2.so \
-              -DSDL2IMAGE_SAMPLES=OFF \
-              -DSDL2IMAGE_TESTS=OFF \
-              -DSDL2IMAGE_DEPS_SHARED=OFF \
-              -DSDL2IMAGE_VENDORED=OFF \
-              -DSDL2IMAGE_AVIF=OFF \
-              -DSDL2IMAGE_BMP=ON \
-              -DSDL2IMAGE_GIF=OFF \
-              -DSDL2IMAGE_JPG=OFF \
-              -DSDL2IMAGE_JXL=OFF \
-              -DSDL2IMAGE_LBM=OFF \
-              -DSDL2IMAGE_PCX=OFF \
-              -DSDL2IMAGE_PNG=ON \
-              -DSDL2IMAGE_PNM=OFF \
-              -DSDL2IMAGE_QOI=OFF \
-              -DSDL2IMAGE_SVG=OFF \
-              -DSDL2IMAGE_TGA=OFF \
-              -DSDL2IMAGE_TIF=OFF \
-              -DSDL2IMAGE_WEBP=OFF \
-              -DSDL2IMAGE_XCF=OFF \
-              -DSDL2IMAGE_XPM=OFF \
-              -DSDL2IMAGE_XV=OFF \
-              -DBUILD_SHARED_LIBS=ON 2>&1 || echo "SDL2_image cmake configuration failed, continuing..."
-            
-            cmake --build . --config Release -j$(nproc) 2>&1 || echo "SDL2_image build failed, continuing..."
-            
-            cd ..
-            mkdir -p "SDL2_image/lib/$ABI"
-            find "SDL2_image-build-$ABI" -name "libSDL2_image.so" -exec cp {} "SDL2_image/lib/$ABI/" \; 2>/dev/null || true
-            rm -rf "SDL2_image-build-$ABI"
-          fi
-        done
-        
-        # Cleanup source directories
-        rm -rf SDL2-source SDL2_image-source
+        # Run the setup script if it exists
+        if (Test-Path "setup_sdl3_android.ps1") {
+          Write-Host "Running setup_sdl3_android.ps1 to download and extract SDL3 AARs..."
+          .\setup_sdl3_android.ps1
+        } else {
+          Write-Host "setup_sdl3_android.ps1 not found, SDL3 should already be configured"
+        }
 
     - name: Generate asset manifest and copy assets into Android assets
+      shell: pwsh
       run: |
-        echo "Preparing asset manifest and copying assets into android/app/src/main/assets/"
-        ASSETS_DIR=android/app/src/main/assets
-        MANIFEST="$ASSETS_DIR/asset_list.txt"
-        mkdir -p "$ASSETS_DIR"
+        Write-Host "Preparing asset manifest and copying assets into android/app/src/main/assets/"
+        $assetsDir = "android/app/src/main/assets"
+        $manifest = "$assetsDir/asset_list.txt"
+        New-Item -ItemType Directory -Path $assetsDir -Force | Out-Null
 
-        # If the repo contains the Python generator script, prefer it. This
-        # allows local workflows to use the same script while CI can still
-        # fall back to an inline generator if the script is missing.
-        if [ -f scripts/generate_asset_manifest.py ]; then
-          echo "Found scripts/generate_asset_manifest.py, running it..."
-          # Run with python3 or python (prefer python3)
-          if command -v python3 >/dev/null 2>&1; then
-            python3 scripts/generate_asset_manifest.py
-          elif command -v python >/dev/null 2>&1; then
-            python scripts/generate_asset_manifest.py
-          else
-            echo "Python not found; falling back to inline generator"
-          fi
-        fi
+        if (Test-Path "scripts/generate_asset_manifest.py") {
+          Write-Host "Found scripts/generate_asset_manifest.py, running it..."
+          python scripts/generate_asset_manifest.py
+        }
 
-        # If the manifest still doesn't exist (or script missing), run inline generator
-        if [ ! -f "$MANIFEST" ] || [ ! -s "$MANIFEST" ]; then
-          echo "Running inline manifest generator as fallback..."
-          : > "$MANIFEST"
-          for ext in png jpg bmp; do
-            if [ -d sprites ] || [ -d assets ]; then
-              find sprites assets -type f -iname "*.${ext}" -print 2>/dev/null | sed 's|^./||' >> "$MANIFEST" || true
-            fi
-          done
-          if [ -f "$MANIFEST" ]; then
-            sort -u "$MANIFEST" -o "$MANIFEST" || true
-          fi
+        if (-not (Test-Path $manifest) -or ((Get-Content $manifest -ErrorAction SilentlyContinue).Length -eq 0)) {
+          Write-Host "Running inline manifest generator as fallback..."
+          $files = @()
+          foreach ($ext in @('png', 'jpg', 'bmp')) {
+            $files += Get-ChildItem -Path sprites,assets -Filter "*.$ext" -Recurse -File -ErrorAction SilentlyContinue | ForEach-Object { $_.FullName.Replace("$PWD\", "").Replace("\", "/") }
+          }
+          $files | Sort-Object -Unique | Set-Content $manifest
+          
+          foreach ($d in @('sprites', 'assets', 'maps')) {
+            if (Test-Path $d) {
+              $targetDir = "$assetsDir/$d"
+              if (Test-Path $targetDir) { Remove-Item -Recurse -Force $targetDir }
+              Copy-Item -Path $d -Destination $targetDir -Recurse -Force
+            }
+          }
+          
+          if (Test-Path $manifest) {
+            $count = (Get-Content $manifest).Count
+            Write-Host "Wrote manifest with $count entries to $manifest"
+          }
+        }
 
-          for d in sprites assets; do
-            if [ -d "$d" ]; then
-              rm -rf "$ASSETS_DIR/$d"
-              mkdir -p "$ASSETS_DIR/$d"
-              cp -a "$d/." "$ASSETS_DIR/$d/"
-            fi
-          done
-          if [ -f "$MANIFEST" ]; then
-            echo "Wrote manifest with $(wc -l < \"$MANIFEST\") entries to $MANIFEST"
-          else
-            echo "No manifest written (no sprites/assets found)"
-          fi
-        else
-          echo "Manifest already created by script, leaving as-is: $MANIFEST"
-        fi
-      shell: bash
-
-    - name: Grant execute permission for gradlew
-      run: chmod +x android/gradlew
-
-    - name: Build with Gradle
+    - name: Build APK using build_with_jdk17.ps1
+      shell: pwsh
       working-directory: android
       run: |
-        ./gradlew assembleRelease --stacktrace
+        Write-Host "Running build_with_jdk17.ps1..."
+        .\build_with_jdk17.ps1
 
     - name: Sign APK (always - uses debug keystore if no secrets configured)
+      shell: pwsh
       env:
         KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
         KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
@@ -279,91 +131,94 @@ jobs:
         KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
       run: |
         # Find the unsigned APK
-        UNSIGNED_APK=$(find android/app/build/outputs/apk/release -name "*.apk" | head -1)
-        ALIGNED_APK="android/app/build/outputs/apk/release/app-release-aligned.apk"
-        SIGNED_APK="android/app/build/outputs/apk/release/app-release-signed.apk"
+        $unsignedApk = Get-ChildItem -Path android/app/build/outputs/apk/debug -Filter "*.apk" -Recurse | Select-Object -First 1 -ExpandProperty FullName
+        $alignedApk = "android/app/build/outputs/apk/debug/app-debug-aligned.apk"
+        $signedApk = "android/app/build/outputs/apk/debug/app-debug-signed.apk"
         
-        if [ -n "$KEYSTORE_BASE64" ]; then
-          echo "Using provided keystore from secrets"
-          echo "$KEYSTORE_BASE64" | base64 -d > keystore.jks
-          KS_PASS="$KEYSTORE_PASSWORD"
-          KS_ALIAS="$KEY_ALIAS"
-          KS_KEY_PASS="$KEY_PASSWORD"
-        else
-          echo "No keystore secret provided, generating debug keystore for signing"
-          # Note: These are standard Android debug keystore credentials
-          # They are intentionally simple because debug-signed APKs are only for testing
-          keytool -genkey -v -keystore keystore.jks \
-            -alias androiddebugkey \
-            -keyalg RSA \
-            -keysize 2048 \
-            -validity 10000 \
-            -storepass android \
-            -keypass android \
+        if ($env:KEYSTORE_BASE64) {
+          Write-Host "Using provided keystore from secrets"
+          [Convert]::FromBase64String($env:KEYSTORE_BASE64) | Set-Content -Path keystore.jks -Encoding Byte
+          $ksPass = $env:KEYSTORE_PASSWORD
+          $ksAlias = $env:KEY_ALIAS
+          $ksKeyPass = $env:KEY_PASSWORD
+        } else {
+          Write-Host "No keystore secret provided, generating debug keystore for signing"
+          & keytool -genkey -v -keystore keystore.jks `
+            -alias androiddebugkey `
+            -keyalg RSA `
+            -keysize 2048 `
+            -validity 10000 `
+            -storepass android `
+            -keypass android `
             -dname "CN=Debug, OU=Debug, O=Debug, L=Debug, ST=Debug, C=US"
-          KS_PASS="android"
-          KS_ALIAS="androiddebugkey"
-          KS_KEY_PASS="android"
-        fi
+          $ksPass = "android"
+          $ksAlias = "androiddebugkey"
+          $ksKeyPass = "android"
+        }
         
         # Align APK
-        $ANDROID_SDK_ROOT/build-tools/34.0.0/zipalign -v -p 4 "$UNSIGNED_APK" "$ALIGNED_APK"
+        & "$env:ANDROID_SDK_ROOT\build-tools\34.0.0\zipalign.exe" -v -p 4 "$unsignedApk" "$alignedApk"
         
         # Sign APK
-        $ANDROID_SDK_ROOT/build-tools/34.0.0/apksigner sign \
-          --ks keystore.jks \
-          --ks-pass "pass:$KS_PASS" \
-          --ks-key-alias "$KS_ALIAS" \
-          --key-pass "pass:$KS_KEY_PASS" \
-          --out "$SIGNED_APK" \
-          "$ALIGNED_APK"
+        & "$env:ANDROID_SDK_ROOT\build-tools\34.0.0\apksigner.bat" sign `
+          --ks keystore.jks `
+          --ks-pass "pass:$ksPass" `
+          --ks-key-alias "$ksAlias" `
+          --key-pass "pass:$ksKeyPass" `
+          --out "$signedApk" `
+          "$alignedApk"
         
         # Verify the APK is signed
-        $ANDROID_SDK_ROOT/build-tools/34.0.0/apksigner verify --verbose "$SIGNED_APK"
+        & "$env:ANDROID_SDK_ROOT\build-tools\34.0.0\apksigner.bat" verify --verbose "$signedApk"
         
         # Clean up
-        rm keystore.jks "$ALIGNED_APK"
+        Remove-Item keystore.jks, $alignedApk -Force
         
-        echo "APK signed successfully!"
+        Write-Host "APK signed successfully!"
 
     - name: Copy signed APK to repository root
+      shell: pwsh
       run: |
         # Copy the signed APK to root as Game.apk
-        SIGNED_APK="android/app/build/outputs/apk/release/app-release-signed.apk"
-        if [ -f "$SIGNED_APK" ]; then
-          cp "$SIGNED_APK" Game.apk
-          echo "Copied signed APK to Game.apk"
-        else
-          echo "ERROR: Signed APK not found!"
+        $signedApk = "android/app/build/outputs/apk/debug/app-debug-signed.apk"
+        if (Test-Path $signedApk) {
+          Copy-Item $signedApk Game.apk
+          Write-Host "Copied signed APK to Game.apk"
+        } else {
+          Write-Host "ERROR: Signed APK not found!"
           exit 1
-        fi
+        }
 
     - name: Commit signed APK to repository
       if: github.event_name == 'push'
+      shell: pwsh
       run: |
         git config --local user.email "github-actions[bot]@users.noreply.github.com"
         git config --local user.name "github-actions[bot]"
         git add Game.apk
-        git diff --staged --quiet || git commit -m "Update Game.apk (signed build) [skip ci]"
-        git push
+        $hasChanges = git diff --staged --quiet; $LASTEXITCODE -ne 0
+        if ($hasChanges) {
+          git commit -m "Update Game.apk (signed build) [skip ci]"
+          git push
+        }
 
     - name: Upload signed APK
       uses: actions/upload-artifact@v4
       with:
-        name: app-release-signed
-        path: android/app/build/outputs/apk/release/app-release-signed.apk
+        name: app-debug-signed
+        path: android/app/build/outputs/apk/debug/app-debug-signed.apk
         if-no-files-found: error
 
     - name: Create release artifacts zip
+      shell: pwsh
       run: |
-        mkdir -p release-artifacts
-        cp android/app/build/outputs/apk/release/*.apk release-artifacts/
-        cd release-artifacts
-        zip -r ../sdl-game-android-release.zip .
+        New-Item -ItemType Directory -Path release-artifacts -Force | Out-Null
+        Copy-Item android/app/build/outputs/apk/debug/*.apk release-artifacts/
+        Compress-Archive -Path release-artifacts/* -DestinationPath sdl-game-android-debug.zip
 
     - name: Upload release artifacts
       uses: actions/upload-artifact@v4
       with:
-        name: sdl-game-android-release
-        path: sdl-game-android-release.zip
+        name: sdl-game-android-debug
+        path: sdl-game-android-debug.zip
         if-no-files-found: warn

@@ -2,7 +2,11 @@
 #define ColliderComponent_hpp
 
 #include <string>
+<<<<<<< HEAD
 #include "SDL.h"
+=======
+#include "SDL3/SDL.h"
+>>>>>>> SDL3
 #include <ECS/ECS.hpp>
 #include <ECS/PositionComponent.hpp>
 #include <ECS/SpriteComponent.hpp>
@@ -12,7 +16,11 @@
 
 class ColliderComponent : public Component {
      public:
+<<<<<<< HEAD
       SDL_Rect collider;
+=======
+      SDL_FRect collider;
+>>>>>>> SDL3
       std::string tag;
 
     // Αφαιρέθηκαν μετατοπίσεις: η μάσκα ευθυγραμμίζεται πάντα στο πάνω-αριστερό του collider
@@ -67,6 +75,7 @@ class ColliderComponent : public Component {
       void update() override {
         // Το collider καλύπτει ολόκληρη την περιοχή του εμφανιζόμενου sprite (προέλευση πάνω-αριστερά)
         collider.x = static_cast<int>(position->position.x);
+<<<<<<< HEAD
         collider.y = static_cast<int>(position->position.y);
         collider.w = position->width * position->scale;
         collider.h = position->height * position->scale;
@@ -74,10 +83,20 @@ class ColliderComponent : public Component {
     
       bool isDrawable() override { return true; }
       int drawOrder() override { return collider.y + collider.h; }
+=======
+        collider.y = position->position.y;
+        collider.w = (float)(position->width * position->scale);
+        collider.h = (float)(position->height * position->scale);
+      }
+    
+      bool isDrawable() override { return true; }
+      int drawOrder() override { return (int)(collider.y + collider.h); }
+>>>>>>> SDL3
 
     void draw() override {
         if (Game::debugMode && Game::renderer) {
             // Μετατρέπει τις συντεταγμένες του collider από κόσμο σε οθόνη με την camera
+<<<<<<< HEAD
             SDL_Rect screenRect = collider;
             if (Game::camera) {
                 screenRect.x = Game::camera->worldToScreenX(collider.x);
@@ -92,6 +111,22 @@ class ColliderComponent : public Component {
                 SDL_Rect maskRect = { screenRect.x + mask.offsetX * sc, screenRect.y + mask.offsetY * sc, mask.width * sc, mask.height * sc };
                 SDL_SetRenderDrawColor(Game::renderer, 0, 255, 0, 255);
                 SDL_RenderDrawRect(Game::renderer, &maskRect);
+=======
+            SDL_FRect screenRect = collider;
+            if (Game::camera) {
+                screenRect.x = (float)Game::camera->worldToScreenX(collider.x);
+                screenRect.y = (float)Game::camera->worldToScreenY(collider.y);
+            }
+            // Σχεδιάζει το ορθογώνιο του collider με κόκκινο
+            SDL_SetRenderDrawColor(Game::renderer, 255, 0, 0, 255);
+            SDL_RenderRect(Game::renderer, &screenRect);
+            // Προαιρετικά, σχεδιάζει τα όρια της μάσκας με πράσινο (κλιμακωμένο)
+            if (mask.width > 0 && mask.height > 0) {
+                int sc = position ? position->scale : 1;
+                SDL_FRect maskRect = { screenRect.x + mask.offsetX * sc, screenRect.y + mask.offsetY * sc, (float)(mask.width * sc), (float)(mask.height * sc) };
+                SDL_SetRenderDrawColor(Game::renderer, 0, 255, 0, 255);
+                SDL_RenderRect(Game::renderer, &maskRect);
+>>>>>>> SDL3
             }
         }
     }

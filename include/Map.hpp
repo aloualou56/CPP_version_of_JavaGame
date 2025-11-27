@@ -17,11 +17,7 @@ class Map {
        int getTileAt(int x, int y) const;
 
     private:
-<<<<<<< HEAD
-       SDL_Rect src, dest;
-=======
        SDL_FRect src, dest;
->>>>>>> SDL3
        SDL_Texture* dirt;
        SDL_Texture* grass;
        SDL_Texture* water;

@@ -3,13 +3,8 @@
 
 #include <vector>
 #include <string>
-<<<<<<< HEAD
-#include <SDL.h>
-#include <SDL_image.h>
-=======
 #include <SDL3/SDL.h>
 #include <SDL3_image/SDL_image.h>
->>>>>>> SDL3
 
 class ImageMask {
 public:
@@ -30,13 +25,8 @@ public:
         if (!loaded) return false;
 
         // Εξασφαλίζει μορφή 32-bit RGBA για εύκολη πρόσβαση pixel
-<<<<<<< HEAD
-        SDL_Surface* surface = SDL_ConvertSurfaceFormat(loaded, SDL_PIXELFORMAT_RGBA32, 0);
-        SDL_FreeSurface(loaded);
-=======
         SDL_Surface* surface = SDL_ConvertSurface(loaded, SDL_PIXELFORMAT_RGBA32);
         SDL_DestroySurface(loaded);
->>>>>>> SDL3
         if (!surface) return false;
 
         int w = surface->w;
@@ -47,20 +37,12 @@ public:
         SDL_LockSurface(surface);
         Uint8* pixels = static_cast<Uint8*>(surface->pixels);
         int pitch = surface->pitch; // bytes per row
-<<<<<<< HEAD
-        SDL_PixelFormat* fmt = surface->format;
-=======
         const SDL_PixelFormatDetails* fmt = SDL_GetPixelFormatDetails(surface->format);
->>>>>>> SDL3
         for (int y = 0; y < h; ++y) {
             for (int x = 0; x < w; ++x) {
                 Uint32 px = *reinterpret_cast<Uint32*>(pixels + y * pitch + x * 4);
                 Uint8 r, g, b, a;
-<<<<<<< HEAD
-                SDL_GetRGBA(px, fmt, &r, &g, &b, &a);
-=======
                 SDL_GetRGBA(px, fmt, NULL, &r, &g, &b, &a);
->>>>>>> SDL3
                 if (a > COLLISION_ALPHA_THRESHOLD) {  // Χρησιμοποιεί υψηλότερο κατώφλι για να αγνοεί ημιδιαφανή pixels
                     if (x < minX) minX = x;
                     if (y < minY) minY = y;
@@ -73,11 +55,7 @@ public:
         // Αν είναι πλήρως διαφανής, παραγάγει κενή μάσκα
         if (maxX < 0 || maxY < 0) {
             SDL_UnlockSurface(surface);
-<<<<<<< HEAD
-            SDL_FreeSurface(surface);
-=======
             SDL_DestroySurface(surface);
->>>>>>> SDL3
             width = 0;
             height = 0;
             offsetX = offsetY = 0;
@@ -96,21 +74,13 @@ public:
             for (int x = 0; x < width; ++x) {
                 Uint32 px = *reinterpret_cast<Uint32*>(pixels + (y + minY) * pitch + (x + minX) * 4);
                 Uint8 r, g, b, a;
-<<<<<<< HEAD
-                SDL_GetRGBA(px, fmt, &r, &g, &b, &a);
-=======
                 SDL_GetRGBA(px, fmt, NULL, &r, &g, &b, &a);
->>>>>>> SDL3
                 mask[y][x] = (a > COLLISION_ALPHA_THRESHOLD);  // Χρησιμοποιεί το ίδιο κατώφλι με την εύρεση περιγράμματος
             }
         }
 
         SDL_UnlockSurface(surface);
-<<<<<<< HEAD
-        SDL_FreeSurface(surface);
-=======
         SDL_DestroySurface(surface);
->>>>>>> SDL3
         return true;
     }
 

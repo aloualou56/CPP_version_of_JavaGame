@@ -1,9 +1,12 @@
 name: Android Build
 
 on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
   workflow_dispatch:
 
-# Permissions for the GITHUB_TOKEN
 permissions:
   contents: write
 
@@ -13,27 +16,31 @@ env:
 
 jobs:
   build:
-    runs-on: windows-latest
+    runs-on: ubuntu-latest
     
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
 
+    - name: Set up JDK 17
+      uses: actions/setup-java@v4
+      with:
+        java-version: '17'
+        distribution: 'temurin'
+
     - name: Setup Android SDK
       uses: android-actions/setup-android@v3
 
     - name: Install Android SDK components
-      shell: pwsh
       run: |
-        & "$env:ANDROID_SDK_ROOT\cmdline-tools\latest\bin\sdkmanager.bat" --install "ndk;23.1.7779620"
-        & "$env:ANDROID_SDK_ROOT\cmdline-tools\latest\bin\sdkmanager.bat" --install "build-tools;34.0.0"
-        & "$env:ANDROID_SDK_ROOT\cmdline-tools\latest\bin\sdkmanager.bat" --install "platforms;android-34"
-        & "$env:ANDROID_SDK_ROOT\cmdline-tools\latest\bin\sdkmanager.bat" --install "cmake;3.22.1"
+        sdkmanager --install "ndk;23.1.7779620"
+        sdkmanager --install "build-tools;34.0.0"
+        sdkmanager --install "platforms;android-34"
+        sdkmanager --install "cmake;3.22.1"
         
-        # Set ANDROID_NDK_HOME environment variable for the rest of the workflow
-        $ndkPath = Join-Path $env:ANDROID_SDK_ROOT "ndk\23.1.7779620"
-        Add-Content $env:GITHUB_ENV "ANDROID_NDK_HOME=$ndkPath"
-        Add-Content $env:GITHUB_ENV "ANDROID_HOME=$env:ANDROID_SDK_ROOT"
+        # Set environment variables
+        echo "ANDROID_NDK_HOME=$ANDROID_SDK_ROOT/ndk/23.1.7779620" >> $GITHUB_ENV
+        echo "ANDROID_HOME=$ANDROID_SDK_ROOT" >> $GITHUB_ENV
 
     - name: Cache Gradle packages
       uses: actions/cache@v4
@@ -54,157 +61,165 @@ jobs:
         key: ${{ runner.os }}-sdl3-v1-${{ env.SDL3_VERSION }}-${{ env.SDL3_IMAGE_VERSION }}
 
     - name: Download and Setup SDL3 for Android
-      shell: pwsh
       run: |
-        cd android
+        cd android/app/src/main/cpp
         
-        # Run the setup script if it exists
-        if (Test-Path "setup_sdl3_android.ps1") {
-          Write-Host "Running setup_sdl3_android.ps1 to download and extract SDL3 AARs..."
-          .\setup_sdl3_android.ps1
-        } else {
-          Write-Host "setup_sdl3_android.ps1 not found, SDL3 should already be configured"
-        }
+        # Extract SDL3 AAR if it exists
+        if [ -f "SDL3/SDL3-${SDL3_VERSION}.aar" ]; then
+          echo "Extracting SDL3 AAR..."
+          rm -rf SDL3/aar_unpacked
+          mkdir -p SDL3/aar_unpacked
+          unzip -o "SDL3/SDL3-${SDL3_VERSION}.aar" -d SDL3/aar_unpacked
+          
+          # Copy SDL3 native libraries
+          SDL3_LIBS_PATH="SDL3/aar_unpacked/prefab/modules/SDL3-shared/libs"
+          if [ -d "$SDL3_LIBS_PATH" ]; then
+            for ABI_DIR in "$SDL3_LIBS_PATH"/android.*; do
+              ABI=$(basename "$ABI_DIR" | sed 's/^android\.//')
+              mkdir -p "SDL3/lib/$ABI"
+              if [ -f "$ABI_DIR/libSDL3.so" ]; then
+                cp "$ABI_DIR/libSDL3.so" "SDL3/lib/$ABI/"
+                echo "Copied libSDL3.so for $ABI"
+              fi
+            done
+          fi
+          
+          # Copy SDL3 headers
+          if [ -d "SDL3/aar_unpacked/prefab/modules/SDL3-Headers/include" ]; then
+            mkdir -p SDL3/include
+            cp -r SDL3/aar_unpacked/prefab/modules/SDL3-Headers/include/* SDL3/include/
+            echo "Copied SDL3 headers"
+          fi
+        fi
+        
+        # Extract SDL3_image AAR if it exists
+        if [ -f "SDL3_image/SDL3_image-${SDL3_IMAGE_VERSION}.aar" ]; then
+          echo "Extracting SDL3_image AAR..."
+          rm -rf SDL3_image/aar_unpacked
+          mkdir -p SDL3_image/aar_unpacked
+          unzip -o "SDL3_image/SDL3_image-${SDL3_IMAGE_VERSION}.aar" -d SDL3_image/aar_unpacked
+          
+          # Copy SDL3_image native libraries
+          SDL3_IMAGE_LIBS_PATH="SDL3_image/aar_unpacked/prefab/modules/SDL3_image-shared/libs"
+          if [ -d "$SDL3_IMAGE_LIBS_PATH" ]; then
+            for ABI_DIR in "$SDL3_IMAGE_LIBS_PATH"/android.*; do
+              ABI=$(basename "$ABI_DIR" | sed 's/^android\.//')
+              mkdir -p "SDL3_image/lib/$ABI"
+              if [ -f "$ABI_DIR/libSDL3_image.so" ]; then
+                cp "$ABI_DIR/libSDL3_image.so" "SDL3_image/lib/$ABI/"
+                echo "Copied libSDL3_image.so for $ABI"
+              fi
+            done
+          fi
+          
+          # Copy SDL3_image headers
+          if [ -d "SDL3_image/aar_unpacked/prefab/modules/SDL3_image-shared/include" ]; then
+            mkdir -p SDL3_image/include
+            cp -r SDL3_image/aar_unpacked/prefab/modules/SDL3_image-shared/include/* SDL3_image/include/
+            echo "Copied SDL3_image headers"
+          fi
+        fi
 
-    - name: Generate asset manifest and copy assets into Android assets
-      shell: pwsh
+    - name: Generate asset manifest and copy assets
       run: |
-        Write-Host "Preparing asset manifest and copying assets into android/app/src/main/assets/"
-        $assetsDir = "android/app/src/main/assets"
-        $manifest = "$assetsDir/asset_list.txt"
-        New-Item -ItemType Directory -Path $assetsDir -Force | Out-Null
+        echo "Preparing asset manifest and copying assets..."
+        ASSETS_DIR="android/app/src/main/assets"
+        mkdir -p "$ASSETS_DIR"
+        
+        # Copy asset directories
+        for DIR in sprites assets maps; do
+          if [ -d "$DIR" ]; then
+            rm -rf "$ASSETS_DIR/$DIR"
+            cp -r "$DIR" "$ASSETS_DIR/"
+            echo "Copied $DIR to Android assets"
+          fi
+        done
+        
+        # Generate asset manifest
+        MANIFEST="$ASSETS_DIR/asset_list.txt"
+        > "$MANIFEST"
+        for EXT in png jpg bmp; do
+          find sprites assets -name "*.$EXT" 2>/dev/null | sort >> "$MANIFEST" || true
+        done
+        
+        if [ -f "$MANIFEST" ]; then
+          COUNT=$(wc -l < "$MANIFEST")
+          echo "Generated manifest with $COUNT entries"
+        fi
 
-        if (Test-Path "scripts/generate_asset_manifest.py") {
-          Write-Host "Found scripts/generate_asset_manifest.py, running it..."
-          python scripts/generate_asset_manifest.py
-        }
-
-        if (-not (Test-Path $manifest) -or ((Get-Content $manifest -ErrorAction SilentlyContinue).Length -eq 0)) {
-          Write-Host "Running inline manifest generator as fallback..."
-          $files = @()
-          foreach ($ext in @('png', 'jpg', 'bmp')) {
-            $files += Get-ChildItem -Path sprites,assets -Filter "*.$ext" -Recurse -File -ErrorAction SilentlyContinue | ForEach-Object { $_.FullName.Replace("$PWD\", "").Replace("\", "/") }
-          }
-          $files | Sort-Object -Unique | Set-Content $manifest
-          
-          foreach ($d in @('sprites', 'assets', 'maps')) {
-            if (Test-Path $d) {
-              $targetDir = "$assetsDir/$d"
-              if (Test-Path $targetDir) { Remove-Item -Recurse -Force $targetDir }
-              Copy-Item -Path $d -Destination $targetDir -Recurse -Force
-            }
-          }
-          
-          if (Test-Path $manifest) {
-            $count = (Get-Content $manifest).Count
-            Write-Host "Wrote manifest with $count entries to $manifest"
-          }
-        }
-
-    - name: Build APK using build_with_jdk17.ps1
-      shell: pwsh
+    - name: Build APK
       working-directory: android
       run: |
-        Write-Host "Running build_with_jdk17.ps1..."
-        .\build_with_jdk17.ps1
+        chmod +x gradlew
+        ./gradlew clean assembleDebug
 
-    - name: Sign APK (always - uses debug keystore if no secrets configured)
-      shell: pwsh
+    - name: Sign APK
       env:
         KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
         KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
         KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
         KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
       run: |
-        # Find the unsigned APK
-        $unsignedApk = Get-ChildItem -Path android/app/build/outputs/apk/debug -Filter "*.apk" -Recurse | Select-Object -First 1 -ExpandProperty FullName
-        $alignedApk = "android/app/build/outputs/apk/debug/app-debug-aligned.apk"
-        $signedApk = "android/app/build/outputs/apk/debug/app-debug-signed.apk"
+        # Find the debug APK
+        UNSIGNED_APK=$(find android/app/build/outputs/apk/debug -name "*.apk" | head -1)
+        ALIGNED_APK="android/app/build/outputs/apk/debug/app-debug-aligned.apk"
+        SIGNED_APK="android/app/build/outputs/apk/debug/app-debug-signed.apk"
         
-        if ($env:KEYSTORE_BASE64) {
-          Write-Host "Using provided keystore from secrets"
-          [Convert]::FromBase64String($env:KEYSTORE_BASE64) | Set-Content -Path keystore.jks -Encoding Byte
-          $ksPass = $env:KEYSTORE_PASSWORD
-          $ksAlias = $env:KEY_ALIAS
-          $ksKeyPass = $env:KEY_PASSWORD
-        } else {
-          Write-Host "No keystore secret provided, generating debug keystore for signing"
-          & keytool -genkey -v -keystore keystore.jks `
-            -alias androiddebugkey `
-            -keyalg RSA `
-            -keysize 2048 `
-            -validity 10000 `
-            -storepass android `
-            -keypass android `
+        if [ -n "$KEYSTORE_BASE64" ]; then
+          echo "Using provided keystore from secrets"
+          echo "$KEYSTORE_BASE64" | base64 -d > keystore.jks
+          KS_PASS="$KEYSTORE_PASSWORD"
+          KS_ALIAS="$KEY_ALIAS"
+          KS_KEY_PASS="$KEY_PASSWORD"
+        else
+          echo "No keystore secret provided, generating debug keystore"
+          keytool -genkey -v -keystore keystore.jks \
+            -alias androiddebugkey \
+            -keyalg RSA \
+            -keysize 2048 \
+            -validity 10000 \
+            -storepass android \
+            -keypass android \
             -dname "CN=Debug, OU=Debug, O=Debug, L=Debug, ST=Debug, C=US"
-          $ksPass = "android"
-          $ksAlias = "androiddebugkey"
-          $ksKeyPass = "android"
-        }
+          KS_PASS="android"
+          KS_ALIAS="androiddebugkey"
+          KS_KEY_PASS="android"
+        fi
         
         # Align APK
-        & "$env:ANDROID_SDK_ROOT\build-tools\34.0.0\zipalign.exe" -v -p 4 "$unsignedApk" "$alignedApk"
+        "$ANDROID_SDK_ROOT/build-tools/34.0.0/zipalign" -v -p 4 "$UNSIGNED_APK" "$ALIGNED_APK"
         
         # Sign APK
-        & "$env:ANDROID_SDK_ROOT\build-tools\34.0.0\apksigner.bat" sign `
-          --ks keystore.jks `
-          --ks-pass "pass:$ksPass" `
-          --ks-key-alias "$ksAlias" `
-          --key-pass "pass:$ksKeyPass" `
-          --out "$signedApk" `
-          "$alignedApk"
+        "$ANDROID_SDK_ROOT/build-tools/34.0.0/apksigner" sign \
+          --ks keystore.jks \
+          --ks-pass "pass:$KS_PASS" \
+          --ks-key-alias "$KS_ALIAS" \
+          --key-pass "pass:$KS_KEY_PASS" \
+          --out "$SIGNED_APK" \
+          "$ALIGNED_APK"
         
-        # Verify the APK is signed
-        & "$env:ANDROID_SDK_ROOT\build-tools\34.0.0\apksigner.bat" verify --verbose "$signedApk"
+        # Verify the APK
+        "$ANDROID_SDK_ROOT/build-tools/34.0.0/apksigner" verify --verbose "$SIGNED_APK"
         
         # Clean up
-        Remove-Item keystore.jks, $alignedApk -Force
+        rm -f keystore.jks "$ALIGNED_APK"
         
-        Write-Host "APK signed successfully!"
+        echo "APK signed successfully!"
 
     - name: Copy signed APK to repository root
-      shell: pwsh
       run: |
-        # Copy the signed APK to root as Game.apk
-        $signedApk = "android/app/build/outputs/apk/debug/app-debug-signed.apk"
-        if (Test-Path $signedApk) {
-          Copy-Item $signedApk Game.apk
-          Write-Host "Copied signed APK to Game.apk"
-        } else {
-          Write-Host "ERROR: Signed APK not found!"
+        SIGNED_APK="android/app/build/outputs/apk/debug/app-debug-signed.apk"
+        if [ -f "$SIGNED_APK" ]; then
+          cp "$SIGNED_APK" Game.apk
+          echo "Copied signed APK to Game.apk"
+        else
+          echo "ERROR: Signed APK not found!"
           exit 1
-        }
+        fi
 
-    - name: Commit signed APK to repository
-      if: github.event_name == 'push'
-      shell: pwsh
-      run: |
-        git config --local user.email "github-actions[bot]@users.noreply.github.com"
-        git config --local user.name "github-actions[bot]"
-        git add Game.apk
-        $hasChanges = git diff --staged --quiet; $LASTEXITCODE -ne 0
-        if ($hasChanges) {
-          git commit -m "Update Game.apk (signed build) [skip ci]"
-          git push
-        }
-
-    - name: Upload signed APK
+    - name: Upload APK artifact
       uses: actions/upload-artifact@v4
       with:
-        name: app-debug-signed
-        path: android/app/build/outputs/apk/debug/app-debug-signed.apk
+        name: Game-APK
+        path: Game.apk
         if-no-files-found: error
-
-    - name: Create release artifacts zip
-      shell: pwsh
-      run: |
-        New-Item -ItemType Directory -Path release-artifacts -Force | Out-Null
-        Copy-Item android/app/build/outputs/apk/debug/*.apk release-artifacts/
-        Compress-Archive -Path release-artifacts/* -DestinationPath sdl-game-android-debug.zip
-
-    - name: Upload release artifacts
-      uses: actions/upload-artifact@v4
-      with:
-        name: sdl-game-android-debug
-        path: sdl-game-android-debug.zip
-        if-no-files-found: warn

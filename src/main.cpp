@@ -1,4 +1,8 @@
+<<<<<<< HEAD
 #include <SDL2/SDL.h>
+=======
+#include <SDL3/SDL.h>
+>>>>>>> SDL3
 #include <Game.hpp>
 
 #define FPS 60

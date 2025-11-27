@@ -84,8 +84,13 @@ public class SDLGameActivity extends SDLActivity {
     @Override
     protected String[] getLibraries() {
         return new String[] {
+<<<<<<< HEAD
             "SDL2",
             "SDL2_image",
+=======
+            "SDL3",
+            "SDL3_image",
+>>>>>>> SDL3
             "game"
         };
     }

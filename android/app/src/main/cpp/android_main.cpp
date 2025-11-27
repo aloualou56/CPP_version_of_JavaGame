@@ -1,5 +1,9 @@
 /**
+<<<<<<< HEAD
  * android_main.cpp - Android entry point for SDL2 game
+=======
+ * android_main.cpp - Android entry point for SDL3 game
+>>>>>>> SDL3
  * 
  * This file provides the Android-specific main entry point that
  * initializes SDL2 and calls into the game's main loop.
@@ -8,9 +12,16 @@
  * the Android lifecycle, and this native code is loaded as a shared library.
  */
 
+<<<<<<< HEAD
 #include <SDL.h>
 #include <jni.h>
 #include <android/log.h>
+=======
+#include <SDL3/SDL.h>
+#include <jni.h>
+#include <android/log.h>
+#include <unistd.h>
+>>>>>>> SDL3
 #include <string>
 #include <Game.hpp>
 
@@ -25,6 +36,7 @@
 static Game* game = nullptr;
 
 /**
+<<<<<<< HEAD
  * Main entry point for the SDL2 Android application.
  * SDL2 redefines main() via SDL_main.h, so this function is called
  * automatically when the native library is loaded.
@@ -35,6 +47,27 @@ extern "C" int main(int argc, char* argv[]) {
     
     const int FrameDelay = 1000 / FPS;
     Uint32 frameStart;
+=======
+ * Main entry point for the SDL3 Android application.
+ * SDL3 requires SDL_main as the entry point function name.
+ */
+extern "C" int SDL_main(int argc, char* argv[]) {
+    LOGI("Starting SDL Game...");
+    LOGI("SDL Version: %d.%d.%d", SDL_MAJOR_VERSION, SDL_MINOR_VERSION, SDL_MICRO_VERSION);
+    
+    // On Android, use the base path which points to the APK's assets
+    // This is read-only but contains our game assets
+    const char* basePath = SDL_GetBasePath();
+    if (basePath) {
+        LOGI("Base path (APK assets): %s", basePath);
+        chdir(basePath);
+    } else {
+        LOGE("Failed to get base path: %s", SDL_GetError());
+    }
+    
+    const int FrameDelay = 1000 / FPS;
+    Uint64 frameStart;
+>>>>>>> SDL3
     int frametime;
     
     // Create game instance
@@ -60,7 +93,11 @@ extern "C" int main(int argc, char* argv[]) {
         game->render();
         
         // Frame rate limiting
+<<<<<<< HEAD
         frametime = SDL_GetTicks() - frameStart;
+=======
+        frametime = (int)(SDL_GetTicks() - frameStart);
+>>>>>>> SDL3
         if (FrameDelay > frametime) {
             SDL_Delay(FrameDelay - frametime);
         }

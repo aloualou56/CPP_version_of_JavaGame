@@ -1,8 +1,13 @@
 #ifndef HUD_hpp
 #define HUD_hpp
 
+<<<<<<< HEAD
 #include <SDL.h>
 #include <SDL_image.h>
+=======
+#include <SDL3/SDL.h>
+#include <SDL3_image/SDL_image.h>
+>>>>>>> SDL3
 #include <string>
 #include "TextureManager.hpp"
 

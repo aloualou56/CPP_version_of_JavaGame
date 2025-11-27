@@ -26,9 +26,15 @@ class TextureManager {
     // Return an override anchor row (in pixels from top) for given file, or -1 if none
     static int GetAnchorOverride(const char* fileName);
       // Συμβατότητα προς τα πίσω για ζωγραφική (χωρίς flip)
+<<<<<<< HEAD
       static void Draw(SDL_Texture *tex, SDL_Rect src, SDL_Rect dest);
       // Σχεδιάζει με προαιρετικό flip: δώστε `SDL_FLIP_HORIZONTAL` για κατοπτρισμό
       static void Draw(SDL_Texture *tex, SDL_Rect src, SDL_Rect dest, SDL_RendererFlip flip /*= SDL_FLIP_NONE*/);
+=======
+      static void Draw(SDL_Texture *tex, SDL_FRect src, SDL_FRect dest);
+      // Σχεδιάζει με προαιρετικό flip: δώστε `SDL_FLIP_HORIZONTAL` για κατοπτρισμό
+      static void Draw(SDL_Texture *tex, SDL_FRect src, SDL_FRect dest, SDL_FlipMode flip /*= SDL_FLIP_NONE*/);
+>>>>>>> SDL3
 };
 
 

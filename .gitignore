@@ -31,6 +31,8 @@ android/local.properties
 android/app/src/main/cpp/SDL2/
 android/app/src/main/cpp/SDL2_image/
 android/app/src/main/java/org/libsdl/
+android/jdk-17/
+android/jdk-*
 *.aab
 *.jks
 *.keystore

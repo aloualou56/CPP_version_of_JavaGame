@@ -279,6 +279,34 @@ This game can be built as an Android APK using the provided Android project scaf
 - **Java JDK** 17
 - **Gradle** 8.0 (wrapper included)
 
+### Using JDK 17 (recommended)
+
+For building the Android APK you need Java JDK 17. It's strongly recommended to install
+JDK 17 on your machine rather than committing a portable JDK into the repository.
+
+Recommended installers:
+- Eclipse Adoptium (Temurin): https://adoptium.net/
+- Amazon Corretto: https://aws.amazon.com/corretto/
+- Azul Zulu: https://www.azul.com/downloads/
+
+After installing, set `JAVA_HOME` and verify the version. Example (PowerShell):
+
+```powershell
+# Point to your JDK 17 installation (example path for Adoptium)
+$env:JAVA_HOME = 'C:\Program Files\Eclipse Adoptium\jdk-17.0.2'
+
+# Verify
+& "$env:JAVA_HOME\bin\java.exe" -version
+```
+
+If you do not have JDK 17 installed, the `android\build_with_jdk17.ps1` script can
+download a portable OpenJDK 17 for you automatically. That script will prefer any
+existing `JAVA_HOME` or common system installations and will only download if no
+JDK 17 is found.
+
+Important: do NOT commit the downloaded JDK into the repository. The project
+`.gitignore` already excludes `android/jdk-17/`.
+
 ### Build Locally with Android Studio
 
 1. **Install Android Studio** from [developer.android.com](https://developer.android.com/studio)

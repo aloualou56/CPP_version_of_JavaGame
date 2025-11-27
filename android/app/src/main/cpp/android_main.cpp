@@ -11,6 +11,7 @@
 #include <SDL3/SDL.h>
 #include <jni.h>
 #include <android/log.h>
+#include <unistd.h>
 #include <string>
 #include <Game.hpp>
 
@@ -25,13 +26,22 @@
 static Game* game = nullptr;
 
 /**
- * Main entry point for the SDL2 Android application.
- * SDL2 redefines main() via SDL_main.h, so this function is called
- * automatically when the native library is loaded.
+ * Main entry point for the SDL3 Android application.
+ * SDL3 requires SDL_main as the entry point function name.
  */
-extern "C" int main(int argc, char* argv[]) {
+extern "C" int SDL_main(int argc, char* argv[]) {
     LOGI("Starting SDL Game...");
-    LOGI("SDL Version: %d.%d.%d", SDL_MAJOR_VERSION, SDL_MINOR_VERSION, SDL_PATCHLEVEL);
+    LOGI("SDL Version: %d.%d.%d", SDL_MAJOR_VERSION, SDL_MINOR_VERSION, SDL_MICRO_VERSION);
+    
+    // On Android, use the base path which points to the APK's assets
+    // This is read-only but contains our game assets
+    const char* basePath = SDL_GetBasePath();
+    if (basePath) {
+        LOGI("Base path (APK assets): %s", basePath);
+        chdir(basePath);
+    } else {
+        LOGE("Failed to get base path: %s", SDL_GetError());
+    }
     
     const int FrameDelay = 1000 / FPS;
     Uint64 frameStart;

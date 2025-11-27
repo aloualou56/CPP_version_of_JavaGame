@@ -27,7 +27,9 @@ void HUD::init(int maxH) {
     maxHealth = maxH;
     currentHealth = (float)maxH;
 
+#ifndef __ANDROID__
     std::filesystem::create_directories("sprites/ui");
+#endif
 
     std::string basePath = "sprites/ui/";
     std::string names[5] = {"heart_full.png","heart_3q.png","heart_half.png","heart_1q.png","heart_empty.png"};

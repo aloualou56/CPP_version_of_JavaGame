@@ -1,0 +1,7 @@
+{
+    "abi": "x86",
+    "api": 21,
+    "ndk": 28,
+    "stl": "none",
+    "static": true
+}

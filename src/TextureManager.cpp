@@ -73,10 +73,8 @@ SDL_Texture* TextureManager::LoadTexture(const char* texture) {
     // and many SDL_image Android builds). If that fails (e.g. assets are
     // packaged inside the APK), try SDL_IOFromFile + IMG_LoadIO which can
     // read packaged assets via SDL's IO API.
+    SDL_Texture* tex = nullptr;
     SDL_Surface* tempSurface = IMG_Load(texture);
-    if (tempSurface) {
-        
-    }
     if (!tempSurface) {
         // Log why IMG_Load failed for debugging
         const char* imgErr = SDL_GetError();
@@ -88,21 +86,16 @@ SDL_Texture* TextureManager::LoadTexture(const char* texture) {
                 const char* imgErr2 = SDL_GetError();
                 SDL_LogWarn(SDL_LOG_CATEGORY_APPLICATION, "IMG_LoadIO failed for '%s' -> %s", texture ? texture : "(null)", imgErr2 ? imgErr2 : "(no error)");
             }
-        #else
-            SDL_Surface* conv = SDL_ConvertSurface(tempSurface, SDL_PIXELFORMAT_ABGR8888);
+        }
+    }
+
+    if (tempSurface) {
+        #ifdef __ANDROID__
+            SDL_Surface* conv = SDL_ConvertSurface(tempSurface, SDL_PIXELFORMAT_RGBA8888);
             if (conv) {
-                tex = SDL_CreateTextureFromSurface(Game::renderer, conv);
-                SDL_DestroySurface(conv);
-            } else {
-                tex = SDL_CreateTextureFromSurface(Game::renderer, tempSurface);
-            }
-            SDL_DestroySurface(tempSurface);
-        #endif
-        }
-        else {
-            // Log failure to create a surface for diagnosing missing/corrupt assets
-            SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Failed to load image '%s' (texture will be null)", texture ? texture : "(null)");
-        }
+                Uint8* pixels = (Uint8*)conv->pixels;
+                int pitch = conv->pitch;
+                int w = conv->w;
                 int h = conv->h;
                 for (int y = 0; y < h; ++y) {
                     Uint8* row = pixels + y * pitch;

@@ -94,13 +94,15 @@ SDL_Texture* TextureManager::LoadTexture(const char* texture) {
     }
     SDL_Texture* tex = nullptr;
     if (tempSurface) {
+#ifdef __ANDROID__
+        SDL_Surface* conv = SDL_ConvertSurface(tempSurface, SDL_PIXELFORMAT_RGBA8888);
+#else
         SDL_Surface* conv = SDL_ConvertSurface(tempSurface, SDL_PIXELFORMAT_ABGR8888);
+#endif
         if (conv) {
-           
             tex = SDL_CreateTextureFromSurface(Game::renderer, conv);
             SDL_DestroySurface(conv);
         } else {
-            
             tex = SDL_CreateTextureFromSurface(Game::renderer, tempSurface);
         }
         SDL_DestroySurface(tempSurface);

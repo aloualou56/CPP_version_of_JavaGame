@@ -92,12 +92,44 @@ SDL_Texture* TextureManager::LoadTexture(const char* texture) {
     }
 
     if (tempSurface) {
-        // INDEX8 (palette) textures must be expanded to RGBA for correct colors on Android.
-        // OpenGL ES doesn't handle palette formats the same way as desktop OpenGL.
+        // On Android, OpenGL ES often has different expectations for pixel format
+        // channel ordering. To ensure correct colors (especially for grass tiles
+        // which appear red instead of green), we must convert all surfaces to a
+        // consistent 32-bit pixel format with fixed channel ordering.
+        //
+        // ABGR8888 is typically the native format for OpenGL ES on Android,
+        // ensuring that the red/green/blue channels are interpreted correctly.
+        // This fixes the red grass bug where R and B channels are swapped.
+        #ifdef __ANDROID__
+        {
+            // Always convert to ABGR8888 on Android for consistent channel ordering
+            SDL_PixelFormat targetFormat = SDL_PIXELFORMAT_ABGR8888;
+            
+            if (SDL_ISPIXELFORMAT_INDEXED(tempSurface->format)) {
+                SDL_Log("[ANDROID] INDEX8 texture '%s' - expanding palette to ABGR8888", texture ? texture : "(null)");
+            } else if (tempSurface->format != targetFormat) {
+                SDL_Log("[ANDROID] Converting texture '%s' from format 0x%X to ABGR8888 (0x%X)", 
+                        texture ? texture : "(null)", 
+                        (unsigned int)tempSurface->format, 
+                        (unsigned int)targetFormat);
+            }
+            
+            // Convert surface to target format
+            SDL_Surface* converted = SDL_ConvertSurface(tempSurface, targetFormat);
+            SDL_DestroySurface(tempSurface);
+            
+            if (converted) {
+                tex = SDL_CreateTextureFromSurface(Game::renderer, converted);
+                SDL_DestroySurface(converted);
+            } else {
+                SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, 
+                    "[ANDROID] Failed to convert surface '%s' to ABGR8888: %s", 
+                    texture ? texture : "(null)", SDL_GetError());
+            }
+        }
+        #else
+        // Desktop: only expand indexed/palette textures to RGBA
         if (SDL_ISPIXELFORMAT_INDEXED(tempSurface->format)) {
-            #ifdef __ANDROID__
-                SDL_Log("[ANDROID] INDEX8 texture '%s' - expanding palette to RGBA8888", texture ? texture : "(null)");
-            #endif
             SDL_Surface* expanded = SDL_ConvertSurface(tempSurface, SDL_PIXELFORMAT_RGBA8888);
             SDL_DestroySurface(tempSurface);
             if (expanded) {
@@ -108,6 +140,7 @@ SDL_Texture* TextureManager::LoadTexture(const char* texture) {
             tex = SDL_CreateTextureFromSurface(Game::renderer, tempSurface);
             SDL_DestroySurface(tempSurface);
         }
+        #endif
     } else {
         // Log failure to create a surface for diagnosing missing/corrupt assets
         SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Failed to load image '%s' (texture will be null)", texture ? texture : "(null)");

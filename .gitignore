@@ -22,10 +22,6 @@ Thumbs.db
 debug_screenshots/
 scripts/
 
-<<<<<<< HEAD
-=======
-
->>>>>>> SDL3
 # Android build artifacts
 android/.gradle/
 android/app/build/
@@ -34,14 +30,14 @@ android/local.properties
 android/app/src/main/cpp/SDL2/
 android/app/src/main/cpp/SDL2_image/
 android/app/src/main/java/org/libsdl/
-<<<<<<< HEAD
-=======
 android/jdk-17/
 android/jdk-*
->>>>>>> SDL3
 *.aab
 *.jks
 *.keystore
+
+# Test screenshots (auto-generated)
+tests/android_screenshots/
 
 # Ignore APKs in android directory but keep Game.apk in root
 android/**/*.apk

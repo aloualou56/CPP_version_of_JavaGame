@@ -92,33 +92,18 @@ SDL_Texture* TextureManager::LoadTexture(const char* texture) {
     }
 
     if (tempSurface) {
-        // Handle indexed/palette-based images (INDEX8): convert to RGB first to expand the palette,
-        // then convert to ABGR8888 for consistent rendering. This fixes color issues on Android.
-        SDL_Surface* intermediate = nullptr;
-        if (SDL_ISPIXELFORMAT_INDEXED(tempSurface->format)) {
-            // First expand indexed/palette format to RGBA8888 to properly handle palette colors
-            intermediate = SDL_ConvertSurface(tempSurface, SDL_PIXELFORMAT_RGBA8888);
-            SDL_DestroySurface(tempSurface);
-            tempSurface = intermediate;
-        }
-        
-        // Now convert to ABGR8888 for both PC and Android
-        SDL_Surface* conv = SDL_ConvertSurface(tempSurface, SDL_PIXELFORMAT_ABGR8888);
-        if (conv) {
-            #ifdef __ANDROID__
-                SDL_Log("[ANDROID] Loaded '%s': format=%s -> ABGR8888", 
-                    texture ? texture : "(null)", SDL_GetPixelFormatName(tempSurface->format));
-                if (conv->w > 0 && conv->h > 0) {
-                    Uint8* px = (Uint8*)conv->pixels;
-                    SDL_Log("[ANDROID] First pixel ABGR bytes: %02x %02x %02x %02x", 
-                        px[0], px[1], px[2], px[3]);
-                }
-            #endif
-            tex = SDL_CreateTextureFromSurface(Game::renderer, conv);
-            SDL_DestroySurface(conv);
-        } else {
-            tex = SDL_CreateTextureFromSurface(Game::renderer, tempSurface);
-        }
+        // Create texture directly from the loaded surface without any pixel format conversion.
+        // Let SDL/OpenGL ES handle the format internally. This preserves palette colors correctly.
+        #ifdef __ANDROID__
+            SDL_Log("[ANDROID] Loaded '%s': format=%s, creating texture directly", 
+                texture ? texture : "(null)", SDL_GetPixelFormatName(tempSurface->format));
+            if (tempSurface->w > 0 && tempSurface->h > 0 && tempSurface->pixels) {
+                Uint8* px = (Uint8*)tempSurface->pixels;
+                SDL_Log("[ANDROID] First pixel bytes: %02x %02x %02x %02x", 
+                    px[0], px[1], px[2], px[3]);
+            }
+        #endif
+        tex = SDL_CreateTextureFromSurface(Game::renderer, tempSurface);
         SDL_DestroySurface(tempSurface);
     } else {
         // Log failure to create a surface for diagnosing missing/corrupt assets

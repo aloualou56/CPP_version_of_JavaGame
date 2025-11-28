@@ -65,6 +65,13 @@ void Game::init(const char *title, int xpos, int ypos, int width, int height, bo
         SDL_SetLogPriority(SDL_LOG_CATEGORY_APPLICATION, SDL_LOG_PRIORITY_VERBOSE);
         SDL_Log("=== GAME INIT START ===");
         SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "SDL_Init succeeded");
+        
+        #ifdef __ANDROID__
+            // Android-specific hints for proper OpenGL ES texture handling
+            SDL_SetHint(SDL_HINT_RENDER_DRIVER, "opengles2");
+            SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "0");
+            SDL_Log("[ANDROID] Set OpenGL ES renderer hints");
+        #endif
 
         window = SDL_CreateWindow(title, width, height, flags);
         if(window) {

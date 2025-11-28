@@ -127,9 +127,11 @@ def analyze_region(image, roi=None, verbose=False):
         red_mask = (r > g + 30) & (r > b + 30) & (r > 50)
         
         # Grass candidate mask (exclude very dark/bright/gray)
+        # Convert to int once for efficiency
+        r_int, g_int, b_int = r.astype(int), g.astype(int), b.astype(int)
         not_dark = (r > 30) | (g > 30) | (b > 30)
         not_bright = (r < 240) | (g < 240) | (b < 240)
-        not_gray = (np.abs(r.astype(int) - g) > 15) | (np.abs(r.astype(int) - b) > 15)
+        not_gray = (np.abs(r_int - g_int) > 15) | (np.abs(r_int - b_int) > 15)
         grass_candidate = not_dark & not_bright & not_gray
         
         green_count = int(np.sum(green_mask & grass_candidate))

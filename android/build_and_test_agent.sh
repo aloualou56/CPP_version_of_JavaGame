@@ -1,5 +1,5 @@
 #!/bin/bash
-#
+# HELP_START
 # build_and_test_agent.sh - Automated Android build and test script
 #
 # This script builds the Android APK, installs it on a device/emulator,
@@ -26,7 +26,7 @@
 #   export ANDROID_NDK_HOME="$ANDROID_SDK_ROOT/ndk/25.2.9519653"
 #   export JAVA_HOME="/usr/lib/jvm/java-17-openjdk"
 #   export PATH="$PATH:$ANDROID_SDK_ROOT/platform-tools"
-#
+# HELP_END
 
 set -e
 
@@ -60,7 +60,8 @@ log_step() {
 }
 
 show_help() {
-    head -40 "$0" | tail -35 | sed 's/^# *//'
+    # Extract help text between HELP_START and HELP_END markers
+    sed -n '/^# HELP_START/,/^# HELP_END/p' "$0" | grep -v 'HELP_' | sed 's/^# *//'
     exit 0
 }
 

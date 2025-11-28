@@ -37,7 +37,8 @@ android/jdk-*
 *.keystore
 
 # Test screenshots (auto-generated)
-tests/android_screenshots/
+tests/android_screenshots/*
+!tests/android_screenshots/.gitkeep
 
 # Ignore APKs in android directory but keep Game.apk in root
 android/**/*.apk

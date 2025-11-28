@@ -6,10 +6,10 @@
 
 Map::Map() {
     // Φορτώνει textures για διαφορετικούς τύπους πλακιδίων
-    grass = TextureManager::LoadTexture("sprites/tilesets/16x16 set/grass1.png");
-    dirt = TextureManager::LoadTexture("sprites/tilesets/16x16 set/dirt1.png");
-    water = TextureManager::LoadTexture("sprites/tilesets/16x16 set/grass2.png");
-    stone = TextureManager::LoadTexture("sprites/tilesets/16x16 set/dirt2.png");
+    grass = IMG_LoadTexture(Game::renderer, "sprites/tilesets/16x16 set/grass1.png");
+    dirt = IMG_LoadTexture(Game::renderer, "sprites/tilesets/16x16 set/dirt1.png");
+    water = IMG_LoadTexture(Game::renderer, "sprites/tilesets/16x16 set/grass2.png");
+    stone = IMG_LoadTexture(Game::renderer, "sprites/tilesets/16x16 set/dirt2.png");
 
     // Log texture loading status
     SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "Map textures loaded: grass=%p dirt=%p water=%p stone=%p", 

@@ -21,6 +21,7 @@ static std::mutex g_cacheMutex;
 SDL_Texture* TextureManager::LoadTexture(const char* texture) {
 
     std::string key = texture ? std::string(texture) : std::string();
+    SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "TextureManager::LoadTexture called for key: %s", key.c_str());
     // If cached, return immediately
     {
         std::lock_guard<std::mutex> lk(g_cacheMutex);
@@ -73,6 +74,9 @@ SDL_Texture* TextureManager::LoadTexture(const char* texture) {
     // packaged inside the APK), try SDL_IOFromFile + IMG_LoadIO which can
     // read packaged assets via SDL's IO API.
     SDL_Surface* tempSurface = IMG_Load(texture);
+    if (tempSurface) {
+        
+    }
     if (!tempSurface) {
         // Log why IMG_Load failed for debugging
         const char* imgErr = SDL_GetError();
@@ -90,17 +94,13 @@ SDL_Texture* TextureManager::LoadTexture(const char* texture) {
     }
     SDL_Texture* tex = nullptr;
     if (tempSurface) {
-        // Ensure a consistent, renderer-friendly pixel format to avoid
-        // channel-swapping differences across platforms (esp. Android).
-        // Convert surfaces to ABGR8888 which matches how other code
-        // (e.g. HUD) creates textures and how SDL_RenderTexture expects
-        // pixel bytes on many backends.
         SDL_Surface* conv = SDL_ConvertSurface(tempSurface, SDL_PIXELFORMAT_ABGR8888);
         if (conv) {
+           
             tex = SDL_CreateTextureFromSurface(Game::renderer, conv);
             SDL_DestroySurface(conv);
         } else {
-            // Fallback: try to create texture from the original surface
+            
             tex = SDL_CreateTextureFromSurface(Game::renderer, tempSurface);
         }
         SDL_DestroySurface(tempSurface);

@@ -95,7 +95,7 @@ SDL_Texture* TextureManager::LoadTexture(const char* texture) {
         // Convert surfaces to ABGR8888 which matches how other code
         // (e.g. HUD) creates textures and how SDL_RenderTexture expects
         // pixel bytes on many backends.
-        SDL_Surface* conv = SDL_ConvertSurfaceFormat(tempSurface, SDL_PIXELFORMAT_ABGR8888, 0);
+        SDL_Surface* conv = SDL_ConvertSurface(tempSurface, SDL_PIXELFORMAT_ABGR8888);
         if (conv) {
             tex = SDL_CreateTextureFromSurface(Game::renderer, conv);
             SDL_DestroySurface(conv);
@@ -272,7 +272,7 @@ int TextureManager::DetectBottomOpaqueRow(const char* fileName) {
             }
             Uint8 r,g,b,a;
             // SDL_GetRGBA expects an SDL_PixelFormat* (surf->format).
-            SDL_GetRGBA(pixel, surf->format, &r, &g, &b, &a);
+            SDL_GetRGBA(pixel, fmtdet, nullptr, &r, &g, &b, &a);
             if (a >= ALPHA_THRESHOLD) opaqueCount++;
         }
 

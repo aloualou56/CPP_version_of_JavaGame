@@ -92,19 +92,22 @@ SDL_Texture* TextureManager::LoadTexture(const char* texture) {
     }
 
     if (tempSurface) {
-        // Create texture directly from the loaded surface without any pixel format conversion.
-        // Let SDL/OpenGL ES handle the format internally. This preserves palette colors correctly.
-        #ifdef __ANDROID__
-            SDL_Log("[ANDROID] Loaded '%s': format=%s, creating texture directly", 
-                texture ? texture : "(null)", SDL_GetPixelFormatName(tempSurface->format));
-            if (tempSurface->w > 0 && tempSurface->h > 0 && tempSurface->pixels) {
-                Uint8* px = (Uint8*)tempSurface->pixels;
-                SDL_Log("[ANDROID] First pixel bytes: %02x %02x %02x %02x", 
-                    px[0], px[1], px[2], px[3]);
+        // INDEX8 (palette) textures must be expanded to RGBA for correct colors on Android.
+        // OpenGL ES doesn't handle palette formats the same way as desktop OpenGL.
+        if (SDL_ISPIXELFORMAT_INDEXED(tempSurface->format)) {
+            #ifdef __ANDROID__
+                SDL_Log("[ANDROID] INDEX8 texture '%s' - expanding palette to RGBA8888", texture ? texture : "(null)");
+            #endif
+            SDL_Surface* expanded = SDL_ConvertSurface(tempSurface, SDL_PIXELFORMAT_RGBA8888);
+            SDL_DestroySurface(tempSurface);
+            if (expanded) {
+                tex = SDL_CreateTextureFromSurface(Game::renderer, expanded);
+                SDL_DestroySurface(expanded);
             }
-        #endif
-        tex = SDL_CreateTextureFromSurface(Game::renderer, tempSurface);
-        SDL_DestroySurface(tempSurface);
+        } else {
+            tex = SDL_CreateTextureFromSurface(Game::renderer, tempSurface);
+            SDL_DestroySurface(tempSurface);
+        }
     } else {
         // Log failure to create a surface for diagnosing missing/corrupt assets
         SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Failed to load image '%s' (texture will be null)", texture ? texture : "(null)");

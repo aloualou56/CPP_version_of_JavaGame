@@ -90,7 +90,19 @@ SDL_Texture* TextureManager::LoadTexture(const char* texture) {
     }
     SDL_Texture* tex = nullptr;
     if (tempSurface) {
-        tex = SDL_CreateTextureFromSurface(Game::renderer, tempSurface);
+        // Ensure a consistent, renderer-friendly pixel format to avoid
+        // channel-swapping differences across platforms (esp. Android).
+        // Convert surfaces to ABGR8888 which matches how other code
+        // (e.g. HUD) creates textures and how SDL_RenderTexture expects
+        // pixel bytes on many backends.
+        SDL_Surface* conv = SDL_ConvertSurfaceFormat(tempSurface, SDL_PIXELFORMAT_ABGR8888, 0);
+        if (conv) {
+            tex = SDL_CreateTextureFromSurface(Game::renderer, conv);
+            SDL_DestroySurface(conv);
+        } else {
+            // Fallback: try to create texture from the original surface
+            tex = SDL_CreateTextureFromSurface(Game::renderer, tempSurface);
+        }
         SDL_DestroySurface(tempSurface);
     }
     else {
@@ -232,8 +244,8 @@ int TextureManager::DetectBottomOpaqueRow(const char* fileName) {
         return -1;
     }
 
-    const SDL_PixelFormatDetails* fmt = SDL_GetPixelFormatDetails(surf->format);
-    int bpp = fmt->bytes_per_pixel;
+    const SDL_PixelFormatDetails* fmtdet = SDL_GetPixelFormatDetails(surf->format);
+    int bpp = fmtdet->bytes_per_pixel;
 
     if (SDL_MUSTLOCK(surf)) SDL_LockSurface(surf);
 
@@ -259,7 +271,8 @@ int TextureManager::DetectBottomOpaqueRow(const char* fileName) {
                 case 4: pixel = *(Uint32*)p; break;
             }
             Uint8 r,g,b,a;
-            SDL_GetRGBA(pixel, fmt, NULL, &r, &g, &b, &a);
+            // SDL_GetRGBA expects an SDL_PixelFormat* (surf->format).
+            SDL_GetRGBA(pixel, surf->format, &r, &g, &b, &a);
             if (a >= ALPHA_THRESHOLD) opaqueCount++;
         }
 

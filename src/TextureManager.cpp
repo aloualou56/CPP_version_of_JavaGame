@@ -21,7 +21,9 @@ static std::mutex g_cacheMutex;
 SDL_Texture* TextureManager::LoadTexture(const char* texture) {
 
     std::string key = texture ? std::string(texture) : std::string();
-    SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "TextureManager::LoadTexture called for key: %s", key.c_str());
+    #ifdef __ANDROID__
+        SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "[ANDROID_LOAD] LoadTexture called: %s", key.c_str());
+    #endif
     // If cached, return immediately
     {
         std::lock_guard<std::mutex> lk(g_cacheMutex);

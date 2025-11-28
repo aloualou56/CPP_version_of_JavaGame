@@ -88,20 +88,21 @@ SDL_Texture* TextureManager::LoadTexture(const char* texture) {
                 const char* imgErr2 = SDL_GetError();
                 SDL_LogWarn(SDL_LOG_CATEGORY_APPLICATION, "IMG_LoadIO failed for '%s' -> %s", texture ? texture : "(null)", imgErr2 ? imgErr2 : "(no error)");
             }
-        } else {
-            SDL_LogWarn(SDL_LOG_CATEGORY_APPLICATION, "SDL_IOFromFile returned NULL for '%s'", texture ? texture : "(null)");
-        }
-    }
-    SDL_Texture* tex = nullptr;
-    if (tempSurface) {
-    if (tempSurface) {
-        #ifdef __ANDROID__
-            SDL_Surface* conv = SDL_ConvertSurface(tempSurface, SDL_PIXELFORMAT_RGBA8888);
+        #else
+            SDL_Surface* conv = SDL_ConvertSurface(tempSurface, SDL_PIXELFORMAT_ABGR8888);
             if (conv) {
-                // Manual channel swap: swap R and G for each pixel
-                Uint8* pixels = (Uint8*)conv->pixels;
-                int pitch = conv->pitch;
-                int w = conv->w;
+                tex = SDL_CreateTextureFromSurface(Game::renderer, conv);
+                SDL_DestroySurface(conv);
+            } else {
+                tex = SDL_CreateTextureFromSurface(Game::renderer, tempSurface);
+            }
+            SDL_DestroySurface(tempSurface);
+        #endif
+        }
+        else {
+            // Log failure to create a surface for diagnosing missing/corrupt assets
+            SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Failed to load image '%s' (texture will be null)", texture ? texture : "(null)");
+        }
                 int h = conv->h;
                 for (int y = 0; y < h; ++y) {
                     Uint8* row = pixels + y * pitch;

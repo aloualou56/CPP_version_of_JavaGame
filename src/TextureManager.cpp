@@ -95,10 +95,31 @@ SDL_Texture* TextureManager::LoadTexture(const char* texture) {
     SDL_Texture* tex = nullptr;
     if (tempSurface) {
     #ifdef __ANDROID__
-        SDL_Surface* conv = SDL_ConvertSurface(tempSurface, SDL_PIXELFORMAT_ARGB8888);
+        SDL_Surface* conv = SDL_ConvertSurface(tempSurface, SDL_PIXELFORMAT_RGBA8888);
+        if (conv) {
+            // Manual channel swap: swap R and G for each pixel
+            Uint8* pixels = (Uint8*)conv->pixels;
+            int pitch = conv->pitch;
+            int w = conv->w;
+            int h = conv->h;
+            for (int y = 0; y < h; ++y) {
+                Uint8* row = pixels + y * pitch;
+                for (int x = 0; x < w; ++x) {
+                    Uint8* px = row + x * 4;
+                    Uint8 tmp = px[0]; // R
+                    px[0] = px[1];     // G
+                    px[1] = tmp;       // R
+                    // px[2] = B, px[3] = A (unchanged)
+                }
+            }
+            tex = SDL_CreateTextureFromSurface(Game::renderer, conv);
+            SDL_DestroySurface(conv);
+        } else {
+            tex = SDL_CreateTextureFromSurface(Game::renderer, tempSurface);
+        }
+        SDL_DestroySurface(tempSurface);
     #else
         SDL_Surface* conv = SDL_ConvertSurface(tempSurface, SDL_PIXELFORMAT_ABGR8888);
-    #endif
         if (conv) {
             tex = SDL_CreateTextureFromSurface(Game::renderer, conv);
             SDL_DestroySurface(conv);
@@ -106,7 +127,7 @@ SDL_Texture* TextureManager::LoadTexture(const char* texture) {
             tex = SDL_CreateTextureFromSurface(Game::renderer, tempSurface);
         }
         SDL_DestroySurface(tempSurface);
-    }
+    #endif
     else {
         // Log failure to create a surface for diagnosing missing/corrupt assets
         SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Failed to load image '%s' (texture will be null)", texture ? texture : "(null)");

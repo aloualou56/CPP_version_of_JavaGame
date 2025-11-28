@@ -61,7 +61,15 @@ void Game::init(const char *title, int xpos, int ypos, int width, int height, bo
     int actualH = height;
 
     if(SDL_Init(SDL_INIT_VIDEO | SDL_INIT_EVENTS)) {
+        // Set log priority to ensure all INFO messages appear in logcat
+        SDL_SetLogPriority(SDL_LOG_CATEGORY_APPLICATION, SDL_LOG_PRIORITY_VERBOSE);
         SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "SDL_Init succeeded");
+        
+        #ifdef __ANDROID__
+            // Clear texture cache on Android to force reload with logging
+            TextureManager::ClearCache();
+            SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "[Android] Cleared texture cache for debug logging");
+        #endif
 
         window = SDL_CreateWindow(title, width, height, flags);
         if(window) {

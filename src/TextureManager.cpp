@@ -22,7 +22,7 @@ SDL_Texture* TextureManager::LoadTexture(const char* texture) {
 
     std::string key = texture ? std::string(texture) : std::string();
     #ifdef __ANDROID__
-        SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "[ANDROID_LOAD] LoadTexture called: %s", key.c_str());
+        SDL_Log("[ANDROID_LOAD] LoadTexture: %s", key.c_str());
     #endif
     // If cached, return immediately
     {
@@ -97,12 +97,12 @@ SDL_Texture* TextureManager::LoadTexture(const char* texture) {
         SDL_Surface* conv = SDL_ConvertSurface(tempSurface, SDL_PIXELFORMAT_ABGR8888);
         if (conv) {
             #ifdef __ANDROID__
-                SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "[Android] Loaded '%s': original format=%s, converted to ABGR8888", 
+                SDL_Log("[ANDROID] Loaded '%s': format=%s -> ABGR8888", 
                     texture ? texture : "(null)", SDL_GetPixelFormatName(tempSurface->format));
                 // Log first pixel for debugging
                 if (conv->w > 0 && conv->h > 0) {
                     Uint8* px = (Uint8*)conv->pixels;
-                    SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "[Android] First pixel ABGR: A=%02x B=%02x G=%02x R=%02x", 
+                    SDL_Log("[ANDROID] First pixel ABGR bytes: %02x %02x %02x %02x", 
                         px[0], px[1], px[2], px[3]);
                 }
             #endif

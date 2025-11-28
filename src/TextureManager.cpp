@@ -92,14 +92,22 @@ SDL_Texture* TextureManager::LoadTexture(const char* texture) {
     }
 
     if (tempSurface) {
-        // On Android, convert to ABGR8888 (same as PC) for consistent rendering across platforms.
-        // SDL3 with OpenGL ES should handle this format correctly on both platforms.
+        // Handle indexed/palette-based images (INDEX8): convert to RGB first to expand the palette,
+        // then convert to ABGR8888 for consistent rendering. This fixes color issues on Android.
+        SDL_Surface* intermediate = nullptr;
+        if (SDL_ISPIXELFORMAT_INDEXED(tempSurface->format)) {
+            // First expand indexed/palette format to RGBA8888 to properly handle palette colors
+            intermediate = SDL_ConvertSurface(tempSurface, SDL_PIXELFORMAT_RGBA8888);
+            SDL_DestroySurface(tempSurface);
+            tempSurface = intermediate;
+        }
+        
+        // Now convert to ABGR8888 for both PC and Android
         SDL_Surface* conv = SDL_ConvertSurface(tempSurface, SDL_PIXELFORMAT_ABGR8888);
         if (conv) {
             #ifdef __ANDROID__
                 SDL_Log("[ANDROID] Loaded '%s': format=%s -> ABGR8888", 
                     texture ? texture : "(null)", SDL_GetPixelFormatName(tempSurface->format));
-                // Log first pixel for debugging
                 if (conv->w > 0 && conv->h > 0) {
                     Uint8* px = (Uint8*)conv->pixels;
                     SDL_Log("[ANDROID] First pixel ABGR bytes: %02x %02x %02x %02x", 
@@ -109,7 +117,6 @@ SDL_Texture* TextureManager::LoadTexture(const char* texture) {
             tex = SDL_CreateTextureFromSurface(Game::renderer, conv);
             SDL_DestroySurface(conv);
         } else {
-            // Fallback: create texture directly from loaded surface
             tex = SDL_CreateTextureFromSurface(Game::renderer, tempSurface);
         }
         SDL_DestroySurface(tempSurface);

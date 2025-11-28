@@ -65,12 +65,6 @@ void Game::init(const char *title, int xpos, int ypos, int width, int height, bo
         SDL_SetLogPriority(SDL_LOG_CATEGORY_APPLICATION, SDL_LOG_PRIORITY_VERBOSE);
         SDL_Log("=== GAME INIT START ===");
         SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "SDL_Init succeeded");
-        
-        #ifdef __ANDROID__
-            // Clear texture cache on Android to force reload with logging
-            TextureManager::ClearCache();
-            SDL_Log("[ANDROID] Cleared texture cache - textures will reload with logging");
-        #endif
 
         window = SDL_CreateWindow(title, width, height, flags);
         if(window) {

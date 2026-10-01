@@ -5,6 +5,7 @@
 #include <Camera.hpp>
 #include <EnvironmentAssets.hpp>
 #include <HUD.hpp>
+#include <SevenSegment.hpp>
 
 #include <cstdlib>
 #include <iostream>
@@ -19,6 +20,7 @@
 #include "stb_image_write.h"
 
 #include <vector>
+#include <string>
 
 #include <cmath>
 
@@ -43,14 +45,147 @@ SDL_Haptic *Game::haptic = nullptr;
 
 Manager manager;
 auto& player(manager.addEntity());
-auto& wall(manager.addEntity());
 
 // Static pointer to manager for external access
 Manager* Game::managerPtr = nullptr;
+Entity* Game::playerEntity = nullptr;
 bool Game::debugMode = false;
+bool Game::gameStarted = false;
 
 Game::Game() {}
 Game::~Game() {}
+
+// (Re)loads the four player animation sets from a character art folder -
+// either "cutted-character" (boy, the default) or "cutted-character-girl" -
+// both keep the same file layout/frame count, just different art, so the
+// same loading logic works for either. Calling this again on an
+// already-initialized AnimationComponent (from the character-select screen)
+// simply overwrites the existing "Idle"/"Walk"/"Attack"/"Dead" entries with
+// textures from the new folder.
+static void loadPlayerAnimations(AnimationComponent& anim, const std::string& folder) {
+    std::string base = "sprites/characters/" + folder + "/";
+
+    std::vector<std::string> idleAnim = {
+        base + "standing_sprites/standing_1.png", base + "standing_sprites/standing_2.png",
+        base + "standing_sprites/standing_3.png", base + "standing_sprites/standing_4.png",
+        base + "standing_sprites/standing_5.png", base + "standing_sprites/standing_6.png"
+    };
+    std::vector<std::string> walkAnim = {
+        base + "walking_sprites/walking_1.png", base + "walking_sprites/walking_2.png",
+        base + "walking_sprites/walking_3.png", base + "walking_sprites/walking_4.png",
+        base + "walking_sprites/walking_5.png", base + "walking_sprites/walking_6.png"
+    };
+    std::vector<std::string> attackAnim = {
+        base + "fight_sprites/fight_1.png", base + "fight_sprites/fight_2.png",
+        base + "fight_sprites/fight_3.png", base + "fight_sprites/fight_4.png"
+    };
+    std::vector<std::string> deadAnim = {
+        base + "dead_sprites/dead_1.png", base + "dead_sprites/dead_2.png", base + "dead_sprites/dead_3.png"
+    };
+
+    anim.addAnimation("Idle", idleAnim, 200);
+    anim.addAnimation("Walk", walkAnim, 100);
+    anim.addAnimation("Attack", attackAnim, 80);
+    anim.addAnimation("Dead", deadAnim, 300);
+}
+
+// --- World entity factories -------------------------------------------------
+// A hostile slime: wanders until the player enters detectionRange, then
+// chases and deals contact damage. slime.png is a spritesheet, not a
+// ready-to-draw image, so the two idle-squish frames are cropped out of it
+// once via TextureManager::LoadTextureRegion and cached (mirrors Java's
+// Enemy.loadImage(), which does the same crop at runtime).
+static Entity& spawnEnemy(Manager& mgr, float x, float y) {
+    auto& e = mgr.addEntity();
+    e.addComponent<PositionComponent>(x, y, 32, 32, 2); // 64x64 world box, matches Java's enemy solidArea
+    e.getComponent<PositionComponent>().speed = 2;
+
+    AnimationComponent& anim = e.addComponent<AnimationComponent>();
+    TextureManager::LoadTextureRegion("sprites/characters/slime.png", "sprites/characters/slime_frame_a", 0, 0, 32, 32);
+    TextureManager::LoadTextureRegion("sprites/characters/slime.png", "sprites/characters/slime_frame_b", 32, 0, 32, 32);
+    std::vector<std::string> idle = { "sprites/characters/slime_frame_a", "sprites/characters/slime_frame_b" };
+    anim.addAnimation("Idle", idle, 300);
+    anim.play("Idle");
+
+    // Rescaled onto a small internal HP pool (see EnemyAIComponent/AttackComponent
+    // comments) so the hits-to-kill ratio still matches Java's 40hp/25dmg (~2 hits).
+    e.addComponent<CombatComponent>(2.0f, "enemy");
+    e.addComponent<EnemyAIComponent>();
+    return e;
+}
+
+// A friendly, non-hostile wanderer. Reuses the player's own animation art,
+// tinted blue, since there's no dedicated NPC sprite sheet - same approach
+// Java's NPC.java uses.
+static Entity& spawnNPC(Manager& mgr, float x, float y) {
+    auto& e = mgr.addEntity();
+    e.addComponent<PositionComponent>(x, y, 48, 48, 3); // same on-screen size as the player
+    e.getComponent<PositionComponent>().speed = 1;
+
+    AnimationComponent& anim = e.addComponent<AnimationComponent>();
+    TextureManager::LoadTintedTexture("sprites/characters/cutted-character/standing_sprites/standing_1.png", "sprites/characters/npc_idle_tinted", 60, 110, 220, 0.45f);
+    TextureManager::LoadTintedTexture("sprites/characters/cutted-character/walking_sprites/walking_1.png", "sprites/characters/npc_walkA_tinted", 60, 110, 220, 0.45f);
+    TextureManager::LoadTintedTexture("sprites/characters/cutted-character/walking_sprites/walking_4.png", "sprites/characters/npc_walkB_tinted", 60, 110, 220, 0.45f);
+    anim.addAnimation("Idle", { "sprites/characters/npc_idle_tinted" }, 400);
+    anim.addAnimation("Walk", { "sprites/characters/npc_walkA_tinted", "sprites/characters/npc_walkB_tinted" }, 250);
+    anim.play("Idle");
+
+    e.addComponent<CombatComponent>(2.0f, "npc");
+    e.addComponent<NPCAIComponent>();
+    return e;
+}
+
+// A world item icon (key/door/chest/boots), drawn stretched to fill one
+// full tile like Java's object.draw() always does regardless of native
+// pixel size (these source images are all 16x16).
+static Entity& spawnItem(Manager& mgr, const char* path, float x, float y) {
+    auto& e = mgr.addEntity();
+    e.addComponent<PositionComponent>(x, y, 16, 16, 6); // 16*6 = 96 = one tile
+    e.addComponent<SpriteComponent>(path);
+    return e;
+}
+
+void Game::spawnWorldEntities() {
+    const float t = 96.0f; // tile size, matches Map::TILE_SIZE / Java's tileSize
+
+    // Same world layout Java's Asset.setCharacters()/setObject() uses - both
+    // games now share the same 50x50 map and 96px tile size, so the tile
+    // coordinates translate directly.
+    spawnEnemy(manager, 10 * t, 10 * t);
+    spawnEnemy(manager, 35 * t, 15 * t);
+    spawnEnemy(manager, 15 * t, 35 * t);
+    spawnEnemy(manager, 40 * t, 40 * t);
+    spawnEnemy(manager, 25 * t, 12 * t);
+    spawnEnemy(manager, 8 * t, 30 * t);
+
+    spawnNPC(manager, 20 * t, 20 * t);
+    spawnNPC(manager, 30 * t, 30 * t);
+    spawnNPC(manager, 12 * t, 40 * t);
+
+    auto& key = spawnItem(manager, "sprites/objects/pickups/key.png", 23 * t, 7 * t);
+    key.addComponent<PickupComponent>(PickupComponent::Type::Key);
+
+    // Chest and boots are decorative placeholders in the original Java game
+    // too (no pickup case is wired up for them there either) - ported as-is.
+    spawnItem(manager, "sprites/objects/pickups/chest.png", 23 * t, 8 * t);
+    spawnItem(manager, "sprites/objects/pickups/boots.png", 23 * t, 10 * t);
+
+    auto& door = spawnItem(manager, "sprites/objects/pickups/door.png", 23 * t, 9 * t);
+    door.addComponent<ColliderComponent>("door"); // solid until opened
+    door.addComponent<PickupComponent>(PickupComponent::Type::Door, 24.0f);
+}
+
+void Game::selectCharacter(int choice) {
+    if (Game::gameStarted) return;
+
+    std::string folder = (choice == 2) ? "cutted-character-girl" : "cutted-character";
+    if (player.hasComponent<AnimationComponent>()) {
+        loadPlayerAnimations(player.getComponent<AnimationComponent>(), folder);
+        player.getComponent<AnimationComponent>().reset("Idle", true);
+    }
+    SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "Character selected: %s", folder.c_str());
+    Game::gameStarted = true;
+}
 
 void Game::init(const char *title, int xpos, int ypos, int width, int height, bool fullscreen) {
     Uint32 flags = 0;
@@ -65,7 +200,7 @@ void Game::init(const char *title, int xpos, int ypos, int width, int height, bo
         SDL_SetLogPriority(SDL_LOG_CATEGORY_APPLICATION, SDL_LOG_PRIORITY_VERBOSE);
         SDL_Log("=== GAME INIT START ===");
         SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "SDL_Init succeeded");
-        
+
         #ifdef __ANDROID__
             // Android-specific hints for proper OpenGL ES texture handling
             SDL_SetHint(SDL_HINT_RENDER_DRIVER, "opengles2");
@@ -93,7 +228,7 @@ void Game::init(const char *title, int xpos, int ypos, int width, int height, bo
                 actualH = 720;
             }
         }
-        
+
         // Show a simple loading screen so the window appears responsive while textures load
         if (renderer) {
             SDL_SetRenderDrawColor(renderer, 20, 20, 20, 255);
@@ -189,50 +324,30 @@ void Game::init(const char *title, int xpos, int ypos, int width, int height, bo
     environmentAssets->generateEnvironment();
     SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "Environment generation complete");
 
-    // ECS: create player and basic entities
+    // ECS: create player
     player.addComponent<PositionComponent>(2400.0f, 2400.0f, 48, 48, 3);
     AnimationComponent& playerAnim = player.addComponent<AnimationComponent>();
-
-    std::vector<std::string> idleAnim = {
-        "sprites/characters/cutted-character/standing_sprites/standing_1.png",
-        "sprites/characters/cutted-character/standing_sprites/standing_2.png",
-        "sprites/characters/cutted-character/standing_sprites/standing_3.png",
-        "sprites/characters/cutted-character/standing_sprites/standing_4.png",
-        "sprites/characters/cutted-character/standing_sprites/standing_5.png",
-        "sprites/characters/cutted-character/standing_sprites/standing_6.png"
-    };
-
-    std::vector<std::string> walkAnim = {
-        "sprites/characters/cutted-character/walking_sprites/walking_1.png",
-        "sprites/characters/cutted-character/walking_sprites/walking_2.png",
-        "sprites/characters/cutted-character/walking_sprites/walking_3.png",
-        "sprites/characters/cutted-character/walking_sprites/walking_4.png",
-        "sprites/characters/cutted-character/walking_sprites/walking_5.png",
-        "sprites/characters/cutted-character/walking_sprites/walking_6.png"
-    };
-
-    playerAnim.addAnimation("Idle", idleAnim, 200);
-    playerAnim.addAnimation("Walk", walkAnim, 100);
-    std::vector<std::string> attackAnim = {
-        "sprites/characters/cutted-character/fight_sprites/fight_1.png",
-        "sprites/characters/cutted-character/fight_sprites/fight_2.png",
-        "sprites/characters/cutted-character/fight_sprites/fight_3.png",
-        "sprites/characters/cutted-character/fight_sprites/fight_4.png"
-    };
-    playerAnim.addAnimation("Attack", attackAnim, 80);
+    loadPlayerAnimations(playerAnim, "cutted-character"); // boy by default; character-select may reload as girl
     playerAnim.play("Idle");
 
     player.addComponent<Keyboard>();
     player.addComponent<MouseHandler>();
+    player.addComponent<AttackComponent>(); // added after Keyboard so it reads this frame's velocity for facing
+    player.addComponent<InventoryComponent>();
     player.addComponent<ColliderComponent>("player");
-    const int playerMax = 5;
-    player.addComponent<HealthComponent>(playerMax);
-    this->hud->init(playerMax);
-    this->hud->bindHealthComponent(&player.getComponent<HealthComponent>());
+    const float playerMaxHp = 5.0f;
+    player.addComponent<CombatComponent>(playerMaxHp, "player");
+    this->hud->init((int)playerMaxHp);
+    this->hud->bindCombatComponent(&player.getComponent<CombatComponent>());
 
-    wall.addComponent<PositionComponent>(600.0f, 600.0f, 48, 48, 2);
-    wall.addComponent<SpriteComponent>("sprites/tilesets/16x16 set/dirt1.png");
-    wall.addComponent<ColliderComponent>("wall");
+    Game::playerEntity = &player;
+
+    previewBoy = TextureManager::LoadTexture("sprites/characters/cutted-character/standing_sprites/standing_1.png");
+    previewGirl = TextureManager::LoadTexture("sprites/characters/cutted-character-girl/standing_sprites/standing_1.png");
+
+    spawnWorldEntities();
+
+    Game::gameStarted = false;
 }
 
 void Game::handleEvents() {
@@ -249,12 +364,9 @@ void Game::handleEvents() {
                 if (event.key.key == SDLK_ESCAPE && event.key.repeat == 0) {
                     isRunning = false;
                 }
-                if (event.key.key == SDLK_R && event.key.repeat == 0) {
-                    if (player.hasComponent<AnimationComponent>()) {
-                        player.getComponent<AnimationComponent>().play("Attack", false);
-                        // haptic feedback on keyboard attack too
-                        if (Game::haptic) SDL_PlayHapticRumble(Game::haptic, 0.5f, 80);
-                    }
+                if (!Game::gameStarted && event.key.repeat == 0) {
+                    if (event.key.key == SDLK_1) selectCharacter(1);
+                    else if (event.key.key == SDLK_2) selectCharacter(2);
                 }
                 break;
             case SDL_EVENT_FINGER_DOWN: {
@@ -276,9 +388,6 @@ void Game::handleEvents() {
                 } else if (fx >= (Game::screenWidth / 2) && Game::attackFingerId == -1) {
                     Game::attackFingerId = fid;
                     Game::attackActive = true;
-                    // trigger attack
-                    if (player.hasComponent<AnimationComponent>()) player.getComponent<AnimationComponent>().play("Attack", false);
-                    if (Game::haptic) SDL_PlayHapticRumble(Game::haptic, 0.6f, 80);
                 }
                 break; }
             case SDL_EVENT_FINGER_UP: {
@@ -312,7 +421,7 @@ void Game::handleEvents() {
                     Game::attackActive = true;
                 }
                 break; }
-            
+
             default:
                 break;
         }
@@ -320,6 +429,8 @@ void Game::handleEvents() {
 }
 
 void Game::update() {
+    if (!Game::gameStarted) return; // frozen on the character-select screen
+
     manager.refresh();
     manager.update();
 
@@ -327,25 +438,6 @@ void Game::update() {
         Vector2D playerPos = player.getComponent<PositionComponent>().position;
         camera->update(playerPos);
     }
-
-    if (Collision::AABB(player.getComponent<ColliderComponent>().collider, wall.getComponent<ColliderComponent>().collider)) {
-        auto& playerPos = player.getComponent<PositionComponent>();
-        playerPos.velocity.x *= -1;
-        playerPos.velocity.y *= -1;
-        unsigned int now = SDL_GetTicks();
-        if (now - this->lastDamageTime > 400) {
-            this->lastDamageTime = now;
-            if (player.hasComponent<HealthComponent>()) {
-                auto &hc = player.getComponent<HealthComponent>();
-                if (hc.getCurrent() > 0.0f) {
-                    hc.takeDamage(1.0f);
-                    std::cout << "wall got hit! Player health: " << hc.getCurrent() << std::endl;
-                }
-            }
-        }
-    }
-
-    // (rest of update remains as before)
 }
 
 void Game::clean() {
@@ -365,10 +457,58 @@ void Game::clean() {
     std::cout << "Terminated successfully......." << std::endl;
 }
 
+void Game::renderCharacterSelect() {
+    SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_NONE);
+    SDL_SetRenderDrawColor(renderer, 24, 26, 38, 255);
+    SDL_FRect bg{ 0, 0, (float)Game::screenWidth, (float)Game::screenHeight };
+    SDL_RenderFillRect(renderer, &bg);
+
+    float iconSize = 160.0f;
+    float gap = 120.0f;
+    float boyX = Game::screenWidth / 2.0f - gap / 2.0f - iconSize;
+    float girlX = Game::screenWidth / 2.0f + gap / 2.0f;
+    float y = Game::screenHeight / 2.0f - iconSize / 2.0f - 30.0f;
+
+    auto drawOption = [&](SDL_Texture* tex, float x, int digit) {
+        SDL_SetRenderDrawColor(renderer, 255, 255, 255, 40);
+        SDL_FRect panel{ x - 14, y - 14, iconSize + 28, iconSize + 28 };
+        SDL_RenderFillRect(renderer, &panel);
+
+        if (tex) {
+            float tw = 0.0f, th = 0.0f;
+            SDL_GetTextureSize(tex, &tw, &th);
+            SDL_FRect src{ 0, 0, tw, th };
+            SDL_FRect dest{ x, y, iconSize, iconSize };
+            TextureManager::Draw(tex, src, dest);
+        }
+
+        SDL_Color white{ 255, 255, 255, 255 };
+        SevenSegment::drawDigit(renderer, digit, x + iconSize / 2.0f - 20.0f, y + iconSize + 24.0f, 40.0f, 56.0f, white);
+    };
+
+    drawOption(previewBoy, boyX, 1);
+    drawOption(previewGirl, girlX, 2);
+}
+
 void Game::render() {
     SDL_RenderClear(renderer);
+
+    if (!Game::gameStarted) {
+        renderCharacterSelect();
+        SDL_RenderPresent(renderer);
+        return;
+    }
+
     map->DrawMap(camera);
     manager.draw();
+
+    if (player.hasComponent<CombatComponent>() && player.getComponent<CombatComponent>().isDead) {
+        SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
+        SDL_SetRenderDrawColor(renderer, 160, 0, 0, 90);
+        SDL_FRect overlay{ 0, 0, (float)Game::screenWidth, (float)Game::screenHeight };
+        SDL_RenderFillRect(renderer, &overlay);
+    }
+
     if (this->hud) this->hud->render();
     // Draw simple on-screen controls for Android
 #ifdef __ANDROID__

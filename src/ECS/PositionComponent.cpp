@@ -7,16 +7,23 @@ void PositionComponent::update() {
     // Αποθηκεύει την παλιά θέση
     float oldX = position.x;
     float oldY = position.y;
-    
-    // Εφαρμόζει κίνηση
+
+    // Εφαρμόζει κίνηση (και οι δύο άξονες μαζί, ώστε η διαγώνια κίνηση να
+    // επικυρώνεται ως ένας συνδυασμένος προορισμός, όχι δύο ανεξάρτητοι
+    // έλεγχοι ανά άξονα)
     position.x += velocity.x * speed;
     position.y += velocity.y * speed;
-    
-    // Ελέγχει σύγκρουση με πλακίδια και επαναφέρει αν υπάρχει σύγκρουση με στερεά πλακίδια
-    if (Game::map && Collision::checkTileCollision(position.x, position.y, Game::map)) {
+
+    // Ελέγχει σύγκρουση με πλακίδια στον πλήρη συνδυασμένο προορισμό (τις 4
+    // γωνίες του κουτιού, όχι ένα δειγματοληπτικό pixel) και επαναφέρει αν
+    // υπάρχει σύγκρουση με στερεά πλακίδια ή αν ο προορισμός είναι εκτός
+    // των ορίων του κόσμου.
+    SDL_FRect destBox{ position.x, position.y, (float)(width * scale), (float)(height * scale) };
+    if (Game::map && Collision::isBoxBlocked(destBox, Game::map)) {
         if (Game::debugMode) std::cout << "Tile collision at (" << position.x << ", " << position.y << ") - reverting" << std::endl;
         position.x = oldX;
         position.y = oldY;
+        Collision::clampInsideWorld(position.x, position.y, (float)(width * scale), (float)(height * scale), Game::map);
         return; // πρόωρη έξοδος αν σύγκρουση με πλακίδιο
     }
 
@@ -69,6 +76,7 @@ void PositionComponent::update() {
                             if (Game::debugMode) std::cout << "Blocked by '" << cc.tag << "' at entity rect (" << otherRect.x << "," << otherRect.y << "," << otherRect.w << "," << otherRect.h << ")" << std::endl;
                             position.x = oldX;
                             position.y = oldY;
+                            Collision::clampInsideWorld(position.x, position.y, (float)(width * scale), (float)(height * scale), Game::map);
                             return; // stop further checks
                         }
                     }
@@ -78,12 +86,19 @@ void PositionComponent::update() {
                         if (Game::debugMode) std::cout << "Blocked by (rect) '" << cc.tag << "'" << std::endl;
                         position.x = oldX;
                         position.y = oldY;
+                        Collision::clampInsideWorld(position.x, position.y, (float)(width * scale), (float)(height * scale), Game::map);
                         return;
                     }
                 }
             }
         }
     }
+
+    // Τελευταία γραμμή άμυνας: ανεξάρτητα από το πώς φτάσαμε εδώ, η θέση
+    // δεν πρέπει ποτέ να μπορεί να καταλήξει εκτός των ορίων του κόσμου
+    // (αυτό είναι το safety-net clamp, ξεχωριστό από τον παραπάνω έλεγχο
+    // πλακιδίων).
+    Collision::clampInsideWorld(position.x, position.y, (float)(width * scale), (float)(height * scale), Game::map);
 
     // If we reach here, movement succeeded
     if (oldX != position.x || oldY != position.y) {

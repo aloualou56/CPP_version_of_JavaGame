@@ -29,6 +29,22 @@ class TextureManager {
       static void Draw(SDL_Texture *tex, SDL_FRect src, SDL_FRect dest);
       // Σχεδιάζει με προαιρετικό flip: δώστε `SDL_FLIP_HORIZONTAL` για κατοπτρισμό
       static void Draw(SDL_Texture *tex, SDL_FRect src, SDL_FRect dest, SDL_FlipMode flip /*= SDL_FLIP_NONE*/);
+      // Σχεδιάζει με flip και προσωρινό alpha-mod (0-255). Το alpha
+      // επαναφέρεται αμέσως μετά τη σχεδίαση ώστε να μην "μολύνει" άλλες
+      // οντότητες που μοιράζονται την ίδια cached υφή.
+      static void Draw(SDL_Texture *tex, SDL_FRect src, SDL_FRect dest, SDL_FlipMode flip, Uint8 alpha);
+
+      // Crops a rectangular region out of an already-loaded image file into
+      // its own cached texture, registered under `key` (so repeated calls
+      // with the same key just hit the cache). Used to slice a single
+      // spritesheet file (e.g. a 2-frame slime sheet) into per-frame
+      // textures without needing separate image files on disk.
+      static SDL_Texture* LoadTextureRegion(const char* sourcePath, const char* key, int x, int y, int w, int h);
+
+      // Loads an image and blends a flat color over its already-opaque
+      // pixels (alpha in 0..1), preserving transparency - mirrors the Java
+      // NPC's SRC_ATOP tint. Registers the result under `key`.
+      static SDL_Texture* LoadTintedTexture(const char* sourcePath, const char* key, Uint8 r, Uint8 g, Uint8 b, float alpha);
 };
 
 

@@ -10,6 +10,7 @@ class HUD;
 
 class Camera;
 class Map;
+class Entity;
 
 class Game {
     public:
@@ -43,17 +44,29 @@ class Game {
       static SDL_Haptic *haptic;
       // Εκθέτει τον παγκόσμιο manager που ορίζεται στο `Game.cpp`
       static Manager* managerPtr;
+      // Εκθέτει την οντότητα του παίκτη ώστε AI/pickup/attack components να
+      // μπορούν να τη βρουν χωρίς να περνάει ως παράμετρος παντού
+      static Entity* playerEntity;
       // Παγκόσμιος διακόπτης debug για εμφάνιση/απόκρυψη οπτικών/καταγραφών debug
       static bool debugMode;
+      // true μόλις ο παίκτης επιλέξει χαρακτήρα στην οθόνη επιλογής και
+      // ξεκινήσει το πραγματικό gameplay (κίνηση εχθρών/NPC, HUD, κλπ.)
+      static bool gameStarted;
 
     private:
       int cnt = 0;
       bool isRunning;
       SDL_Window *window;
-      // HUD and health are managed via ECS `HealthComponent` now
+      // HUD reads player health via ECS `CombatComponent`
       HUD* hud = nullptr;
-      unsigned int lastDamageTime = 0; // ms
-      
+
+      // Character-select screen (shown before gameStarted flips true)
+      void renderCharacterSelect();
+      void selectCharacter(int choice); // 1 = boy, 2 = girl
+      SDL_Texture* previewBoy = nullptr;
+      SDL_Texture* previewGirl = nullptr;
+
+      void spawnWorldEntities();
 };
 
 

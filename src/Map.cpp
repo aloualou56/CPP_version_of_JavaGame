@@ -1,6 +1,5 @@
 #include <Map.hpp>
 #include <TextureManager.hpp>
-#include <fstream>
 #include <sstream>
 #include <iostream>
 
@@ -68,12 +67,16 @@ void Map::loadTileTypes() {
 }
 
 void Map::loadMapFromFile(const std::string& filepath) {
-    std::ifstream file(filepath);
-    if (!file.is_open()) {
-        std::cout << "Warning: Could not load map file: " << filepath << std::endl;
-        std::cout << "Using default empty map" << std::endl;
+    // Read through SDL's I/O instead of std::ifstream: on Android the map is
+    // packed inside the APK, which only SDL (via the asset manager) can open.
+    size_t size = 0;
+    void* data = SDL_LoadFile(filepath.c_str(), &size);
+    if (!data) {
+        SDL_LogWarn(SDL_LOG_CATEGORY_APPLICATION, "Could not load map file %s (%s) - using default empty map", filepath.c_str(), SDL_GetError());
         return;
     }
+    std::istringstream file(std::string(static_cast<const char*>(data), size));
+    SDL_free(data);
 
     std::string line;
     int row = 0;
@@ -90,8 +93,7 @@ void Map::loadMapFromFile(const std::string& filepath) {
         row++;
     }
 
-    file.close();
-    std::cout << "Map loaded successfully from " << filepath << std::endl;
+    SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "Map loaded successfully from %s", filepath.c_str());
 }
 
 void Map::DrawMap(Camera* camera) {
@@ -124,6 +126,11 @@ void Map::DrawMap(Camera* camera) {
             // Μετατρέπει σε θέση οθόνης
             dest.x = (float)camera->worldToScreenX(worldX);
             dest.y = (float)camera->worldToScreenY(worldY);
+
+            if (type != GROUND_TILE) {
+                SDL_FRect groundSrc{ 0.0f, 0.0f, tileTypes[GROUND_TILE].srcW, tileTypes[GROUND_TILE].srcH };
+                TextureManager::Draw(tileTypes[GROUND_TILE].texture, groundSrc, dest);
+            }
 
             src.w = tileTypes[type].srcW;
             src.h = tileTypes[type].srcH;

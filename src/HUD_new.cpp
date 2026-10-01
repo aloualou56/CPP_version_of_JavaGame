@@ -15,7 +15,8 @@ HUD::~HUD() {
 }
 
 static SDL_Texture* createTextureFromRGBA(int w, int h, const std::vector<unsigned char>& buf) {
-    SDL_Texture* t = SDL_CreateTexture(Game::renderer, SDL_PIXELFORMAT_ABGR8888, SDL_TEXTUREACCESS_STATIC, w, h);
+    // RGBA32 = bytes R,G,B,A in memory on every platform (the same layout stbi_write_png expects)
+    SDL_Texture* t = SDL_CreateTexture(Game::renderer, SDL_PIXELFORMAT_RGBA32, SDL_TEXTUREACCESS_STATIC, w, h);
     if (!t) return nullptr;
     SDL_UpdateTexture(t, nullptr, buf.data(), w * 4);
     SDL_SetTextureBlendMode(t, SDL_BLENDMODE_BLEND);
@@ -89,18 +90,18 @@ void HUD::init(int maxH) {
 
                         bool drawFull = (quarters == 4);
                         if (drawFull) {
-                            buf[idx+0] = fullB; buf[idx+1] = fullG; buf[idx+2] = fullR; buf[idx+3] = 255;
+                            buf[idx+0] = fullR; buf[idx+1] = fullG; buf[idx+2] = fullB; buf[idx+3] = 255;
                         } else if (quarters == 3) {
-                            if (dx < (scale*3)/4) { buf[idx+0] = fullB; buf[idx+1] = fullG; buf[idx+2] = fullR; buf[idx+3] = 255; }
-                            else { buf[idx+0] = emptyB; buf[idx+1] = emptyG; buf[idx+2] = emptyR; buf[idx+3] = 255; }
+                            if (dx < (scale*3)/4) { buf[idx+0] = fullR; buf[idx+1] = fullG; buf[idx+2] = fullB; buf[idx+3] = 255; }
+                            else { buf[idx+0] = emptyR; buf[idx+1] = emptyG; buf[idx+2] = emptyB; buf[idx+3] = 255; }
                         } else if (quarters == 2) {
-                            if (dx < scale/2) { buf[idx+0] = fullB; buf[idx+1] = fullG; buf[idx+2] = fullR; buf[idx+3] = 255; }
-                            else { buf[idx+0] = emptyB; buf[idx+1] = emptyG; buf[idx+2] = emptyR; buf[idx+3] = 255; }
+                            if (dx < scale/2) { buf[idx+0] = fullR; buf[idx+1] = fullG; buf[idx+2] = fullB; buf[idx+3] = 255; }
+                            else { buf[idx+0] = emptyR; buf[idx+1] = emptyG; buf[idx+2] = emptyB; buf[idx+3] = 255; }
                         } else if (quarters == 1) {
-                            if (dx < scale/4) { buf[idx+0] = fullB; buf[idx+1] = fullG; buf[idx+2] = fullR; buf[idx+3] = 255; }
-                            else { buf[idx+0] = emptyB; buf[idx+1] = emptyG; buf[idx+2] = emptyR; buf[idx+3] = 255; }
+                            if (dx < scale/4) { buf[idx+0] = fullR; buf[idx+1] = fullG; buf[idx+2] = fullB; buf[idx+3] = 255; }
+                            else { buf[idx+0] = emptyR; buf[idx+1] = emptyG; buf[idx+2] = emptyB; buf[idx+3] = 255; }
                         } else {
-                            buf[idx+0] = emptyB; buf[idx+1] = emptyG; buf[idx+2] = emptyR; buf[idx+3] = 255;
+                            buf[idx+0] = emptyR; buf[idx+1] = emptyG; buf[idx+2] = emptyB; buf[idx+3] = 255;
                         }
                     }
                 }

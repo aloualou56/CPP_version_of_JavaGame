@@ -33,9 +33,9 @@ extern "C" int SDL_main(int argc, char* argv[]) {
     LOGI("Starting SDL Game...");
     LOGI("SDL Version: %d.%d.%d", SDL_MAJOR_VERSION, SDL_MINOR_VERSION, SDL_MICRO_VERSION);
     
-    // Set SDL hints for proper texture/rendering behavior on Android OpenGL ES
+    // Set SDL hints for rendering on Android OpenGL ES (nearest-neighbor
+    // filtering for pixel art is set per texture by TextureManager)
     SDL_SetHint(SDL_HINT_RENDER_DRIVER, "opengles2");
-    SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "0"); // Nearest-neighbor for pixel art
     SDL_SetHint(SDL_HINT_ORIENTATIONS, "LandscapeLeft LandscapeRight");
     
     // On Android, use the base path which points to the APK's assets

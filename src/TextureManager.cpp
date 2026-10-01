@@ -92,8 +92,8 @@ SDL_Texture* TextureManager::LoadTexture(const char* texture) {
     }
 
     if (tempSurface) {
-        // INDEX8 (palette) textures must be expanded to RGBA for correct colors on Android.
-        // OpenGL ES doesn't handle palette formats the same way as desktop OpenGL.
+        // Expand INDEX8 (palette) images to RGBA up front
+        // (SDL_CreateTextureFromSurface would also convert them correctly on its own).
         if (SDL_ISPIXELFORMAT_INDEXED(tempSurface->format)) {
             #ifdef __ANDROID__
                 SDL_Log("[ANDROID] INDEX8 texture '%s' - expanding palette to RGBA8888", texture ? texture : "(null)");

@@ -1,5 +1,6 @@
 #include <ECS/AnimationComponent.hpp>
 #include <ECS/PositionComponent.hpp>
+#include <ECS/CombatComponent.hpp>
 #include <TextureManager.hpp>
 #include <Game.hpp>
 #include <Camera.hpp>
@@ -61,14 +62,19 @@ std::string AnimationComponent::getFirstFramePath(const std::string& name) const
 void AnimationComponent::play(const std::string& animName, bool loop) {
     // Αλλάζει animation μόνο όταν το ζητούμενο διαφέρει από το τρέχον
     if (currentAnimation != animName && animations.count(animName) > 0) {
-        currentAnimation = animName;
-        animIndex = 0;
-        animSpeed = animationSpeeds[animName];
-        lastFrameTime = SDL_GetTicks();
-        animated = true;
-        animationLooping[animName] = loop;
-        if (Game::debugMode) std::cout << "Animation play: " << animName << " loop=" << (loop?"true":"false") << std::endl;
+        reset(animName, loop);
     }
+}
+
+void AnimationComponent::reset(const std::string& animName, bool loop) {
+    if (animations.count(animName) == 0) return;
+    currentAnimation = animName;
+    animIndex = 0;
+    animSpeed = animationSpeeds[animName];
+    lastFrameTime = SDL_GetTicks();
+    animated = true;
+    animationLooping[animName] = loop;
+    if (Game::debugMode) std::cout << "Animation play: " << animName << " loop=" << (loop ? "true" : "false") << std::endl;
 }
 
 void AnimationComponent::update() {
@@ -131,9 +137,26 @@ void AnimationComponent::update() {
 }
 
 void AnimationComponent::draw() {
-    if (!currentAnimation.empty() && !animations[currentAnimation].empty()) {
-        SDL_Texture* currentTex = animations[currentAnimation][animIndex];
-        // Draw using optional flip (horizontal) based on `flip` flag
-        TextureManager::Draw(currentTex, srcRect, destRect, flip ? SDL_FLIP_HORIZONTAL : SDL_FLIP_NONE);
+    if (currentAnimation.empty() || animations[currentAnimation].empty()) return;
+
+    SDL_Texture* currentTex = animations[currentAnimation][animIndex];
+    SDL_FlipMode flipMode = flip ? SDL_FLIP_HORIZONTAL : SDL_FLIP_NONE;
+    Uint8 alpha = 255;
+
+    if (entity->hasComponent<CombatComponent>()) {
+        auto& cc = entity->getComponent<CombatComponent>();
+        if (cc.isDead) {
+            if (cc.tag != "player") {
+                // Fade out over the death window (player instead swaps to
+                // literal dead-pose sprite frames, so no fade is needed there).
+                alpha = (Uint8)(255.0f * (1.0f - cc.deathProgress()));
+            }
+        } else if (cc.isInvulnerable()) {
+            // Brief flicker while invulnerable (just respawned, or just hit),
+            // matching the Java `(int)(invulnerableTimer*20) % 2 == 0` blink.
+            if ((SDL_GetTicks() / 50) % 2 == 0) return;
+        }
     }
+
+    TextureManager::Draw(currentTex, srcRect, destRect, flipMode, alpha);
 }

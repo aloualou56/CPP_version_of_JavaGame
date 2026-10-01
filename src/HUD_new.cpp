@@ -1,7 +1,7 @@
 #include <HUD.hpp>
 #include <Game.hpp>
 #include <TextureManager.hpp>
-#include <ECS/HealthComponent.hpp>
+#include <ECS/CombatComponent.hpp>
 #include <filesystem>
 #include <vector>
 #include <cmath>
@@ -150,10 +150,10 @@ void HUD::setHealth(float current, int max) {
     maxHealth = max;
 }
 
-void HUD::bindHealthComponent(HealthComponent* hc) {
-    healthComp = hc;
+void HUD::bindCombatComponent(CombatComponent* cc) {
+    healthComp = cc;
     if (healthComp) {
-        maxHealth = healthComp->getMax();
+        maxHealth = (int)healthComp->getMax();
         currentHealth = healthComp->getCurrent();
     }
 }

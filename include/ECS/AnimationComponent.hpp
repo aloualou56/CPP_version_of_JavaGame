@@ -41,6 +41,11 @@ public:
     // Επιστρέφει το μονοπάτι του πρώτου καρέ για ένα δεδομένο όνομα animation
     std::string getFirstFramePath(const std::string& name) const;
     void play(const std::string& animName, bool loop = true);
+    // Like play(), but always restarts from frame 0 even if `animName` is
+    // already the current animation. Used after a character-select art
+    // reload and after a player respawn, where the frames behind the same
+    // animation name just changed (or should visibly restart).
+    void reset(const std::string& animName, bool loop = true);
     void update() override;
     void draw() override;
     bool isDrawable() override { return true; }

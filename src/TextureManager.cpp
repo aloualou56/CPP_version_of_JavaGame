@@ -228,6 +228,87 @@ void TextureManager::Draw(SDL_Texture *tex, SDL_FRect src, SDL_FRect dest, SDL_F
     SDL_RenderTextureRotated(Game::renderer, tex, &src, &dest, 0.0, nullptr, flip);
 }
 
+void TextureManager::Draw(SDL_Texture *tex, SDL_FRect src, SDL_FRect dest, SDL_FlipMode flip, Uint8 alpha) {
+    if (!tex) return;
+    if (alpha >= 255) {
+        Draw(tex, src, dest, flip);
+        return;
+    }
+    // Textures are shared/cached across every entity using the same image,
+    // so the alpha mod is set and restored immediately around this single
+    // draw call - rendering is single-threaded and sequential, so no other
+    // entity's draw() can be interleaved inside this one.
+    SDL_SetTextureAlphaMod(tex, alpha);
+    SDL_RenderTextureRotated(Game::renderer, tex, &src, &dest, 0.0, nullptr, flip);
+    SDL_SetTextureAlphaMod(tex, 255);
+}
+
+SDL_Texture* TextureManager::LoadTextureRegion(const char* sourcePath, const char* key, int x, int y, int w, int h) {
+    if (SDL_Texture* cached = GetTexture(key)) return cached;
+
+    SDL_Surface* full = IMG_Load(sourcePath);
+    if (!full) {
+        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "LoadTextureRegion: failed to load '%s'", sourcePath ? sourcePath : "(null)");
+        return nullptr;
+    }
+    SDL_Surface* rgba = SDL_ConvertSurface(full, SDL_PIXELFORMAT_RGBA32);
+    SDL_DestroySurface(full);
+    if (!rgba) return nullptr;
+
+    SDL_Surface* region = SDL_CreateSurface(w, h, SDL_PIXELFORMAT_RGBA32);
+    if (!region) { SDL_DestroySurface(rgba); return nullptr; }
+    SDL_Rect srcRect{ x, y, w, h };
+    SDL_BlitSurface(rgba, &srcRect, region, nullptr);
+    SDL_DestroySurface(rgba);
+
+    SDL_Texture* tex = SDL_CreateTextureFromSurface(Game::renderer, region);
+    SDL_DestroySurface(region);
+    if (!tex) return nullptr;
+
+    SDL_SetTextureScaleMode(tex, SDL_SCALEMODE_NEAREST);
+    RegisterTexture(key, tex);
+    return tex;
+}
+
+SDL_Texture* TextureManager::LoadTintedTexture(const char* sourcePath, const char* key, Uint8 r, Uint8 g, Uint8 b, float alpha) {
+    if (SDL_Texture* cached = GetTexture(key)) return cached;
+
+    SDL_Surface* full = IMG_Load(sourcePath);
+    if (!full) {
+        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "LoadTintedTexture: failed to load '%s'", sourcePath ? sourcePath : "(null)");
+        return nullptr;
+    }
+    SDL_Surface* surface = SDL_ConvertSurface(full, SDL_PIXELFORMAT_RGBA32);
+    SDL_DestroySurface(full);
+    if (!surface) return nullptr;
+
+    SDL_LockSurface(surface);
+    Uint8* pixels = static_cast<Uint8*>(surface->pixels);
+    int pitch = surface->pitch;
+    const SDL_PixelFormatDetails* fmt = SDL_GetPixelFormatDetails(surface->format);
+    for (int py = 0; py < surface->h; ++py) {
+        for (int px = 0; px < surface->w; ++px) {
+            Uint32* pixelPtr = reinterpret_cast<Uint32*>(pixels + py * pitch + px * 4);
+            Uint8 sr, sg, sb, sa;
+            SDL_GetRGBA(*pixelPtr, fmt, nullptr, &sr, &sg, &sb, &sa);
+            if (sa == 0) continue; // fully transparent: leave untouched
+            Uint8 outR = (Uint8)(sr * (1.0f - alpha) + r * alpha);
+            Uint8 outG = (Uint8)(sg * (1.0f - alpha) + g * alpha);
+            Uint8 outB = (Uint8)(sb * (1.0f - alpha) + b * alpha);
+            *pixelPtr = SDL_MapRGBA(fmt, nullptr, outR, outG, outB, sa);
+        }
+    }
+    SDL_UnlockSurface(surface);
+
+    SDL_Texture* tex = SDL_CreateTextureFromSurface(Game::renderer, surface);
+    SDL_DestroySurface(surface);
+    if (!tex) return nullptr;
+
+    SDL_SetTextureScaleMode(tex, SDL_SCALEMODE_NEAREST);
+    RegisterTexture(key, tex);
+    return tex;
+}
+
 int TextureManager::DetectBottomOpaqueRow(const char* fileName) {
     // Similar fallback for DetectBottomOpaqueRow: try IMG_Load first, then
     // SDL_IOFromFile/IMG_LoadIO for packaged assets on Android.

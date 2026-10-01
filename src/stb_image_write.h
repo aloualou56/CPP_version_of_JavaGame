@@ -1,6 +1,6 @@
-/* stb_image_write - v1.16 - public domain - http://nothings.org/stb
-   writes out PNG/BMP/TGA/JPEG/HDR images to C stdio - Sean Barrett 2010-2015
-   no warranty implied; use at your own risk
+/* Minimal PNG writer exposing stb_image_write's stbi_write_png() signature.
+   This is NOT the real stb_image_write (http://nothings.org/stb) - only the
+   one function the HUD needs, writing uncompressed 8-bit RGB/RGBA PNGs.
 */
 
 #ifndef STB_IMAGE_WRITE_H
@@ -28,12 +28,13 @@ int stbi_write_png(const char *filename, int w, int h, int comp, const void *dat
 
 #include <string.h>
 
-static void write_uint32_le(unsigned int x, FILE *f) {
+// PNG stores chunk lengths and CRCs big-endian ("network byte order").
+static void write_uint32_be(unsigned int x, FILE *f) {
     unsigned char b[4];
-    b[0] = x & 0xff;
-    b[1] = (x >> 8) & 0xff;
-    b[2] = (x >> 16) & 0xff;
-    b[3] = (x >> 24) & 0xff;
+    b[0] = (x >> 24) & 0xff;
+    b[1] = (x >> 16) & 0xff;
+    b[2] = (x >> 8) & 0xff;
+    b[3] = x & 0xff;
     fwrite(b, 1, 4, f);
 }
 
@@ -68,6 +69,9 @@ static unsigned int crc(unsigned char *buf, int len) {
 
 int stbi_write_png(const char *filename, int w, int h, int comp, const void *data, int stride_in_bytes) {
     if (comp < 3) return 0;
+    // The pixel data goes into a single stored DEFLATE block, whose length
+    // field is 16 bits - refuse bigger images instead of writing a corrupt file.
+    if ((w * comp + 1) * h > 65535) return 0;
     FILE *f = fopen(filename, "wb");
     if (!f) return 0;
 
@@ -85,12 +89,13 @@ int stbi_write_png(const char *filename, int w, int h, int comp, const void *dat
     ihdr[9] = (comp == 4) ? 6 : 2; // color type: 6=RGBA,2=RGB
     ihdr[10] = 0; ihdr[11] = 0; ihdr[12] = 0;
 
-    write_uint32_le(13, f);
+    write_uint32_be(13, f);
     fwrite("IHDR", 1, 4, f);
     fwrite(ihdr, 1, 13, f);
-    unsigned int crc_val = crc((unsigned char*)"IHDR", 4);
-    crc_val = update_crc(crc_val, ihdr, 13);
-    write_uint32_le(crc_val, f);
+    // A chunk's CRC covers its type and data as one stream
+    unsigned int crc_val = update_crc(0xffffffffu, (unsigned char*)"IHDR", 4);
+    crc_val = update_crc(crc_val, ihdr, 13) ^ 0xffffffffu;
+    write_uint32_be(crc_val, f);
 
     // IDAT - we'll write uncompressed DEFLATE blocks (store) - not efficient but simple
     // Prepare raw image data with filter byte 0 per row
@@ -134,21 +139,21 @@ int stbi_write_png(const char *filename, int w, int h, int comp, const void *dat
     // adler32
     *q++ = (adler >> 24) & 0xff; *q++ = (adler >> 16) & 0xff; *q++ = (adler >> 8) & 0xff; *q++ = adler & 0xff;
 
-    write_uint32_le(idat_content_size, f);
+    write_uint32_be(idat_content_size, f);
     fwrite("IDAT", 1, 4, f);
     fwrite(idat, 1, idat_content_size, f);
-    unsigned int crc_idat = crc((unsigned char*)"IDAT", 4);
-    crc_idat = update_crc(crc_idat, idat, idat_content_size);
-    write_uint32_le(crc_idat, f);
+    unsigned int crc_idat = update_crc(0xffffffffu, (unsigned char*)"IDAT", 4);
+    crc_idat = update_crc(crc_idat, idat, idat_content_size) ^ 0xffffffffu;
+    write_uint32_be(crc_idat, f);
 
     free(idat);
     free(raw);
 
     // IEND
-    write_uint32_le(0, f);
+    write_uint32_be(0, f);
     fwrite("IEND", 1, 4, f);
     unsigned int crc_iend = crc((unsigned char*)"IEND", 4);
-    write_uint32_le(crc_iend, f);
+    write_uint32_be(crc_iend, f);
 
     fclose(f);
     return 1;

@@ -30,12 +30,18 @@ set(GAME_SOURCES
     ${GAME_SRC_DIR}/Vector2D.cpp
     ${GAME_SRC_DIR}/Collision.cpp
     ${GAME_SRC_DIR}/Camera.cpp
+    ${GAME_SRC_DIR}/SevenSegment.cpp
     ${GAME_SRC_DIR}/EnvironmentAssets.cpp
     ${GAME_SRC_DIR}/Environment/Environment.cpp
     ${GAME_SRC_DIR}/ECS/ParticleComponent.cpp
     ${GAME_SRC_DIR}/ECS/SpriteComponent.cpp
     ${GAME_SRC_DIR}/ECS/AnimationComponent.cpp
     ${GAME_SRC_DIR}/ECS/PositionComponent.cpp
+    ${GAME_SRC_DIR}/ECS/CombatComponent.cpp
+    ${GAME_SRC_DIR}/ECS/AttackComponent.cpp
+    ${GAME_SRC_DIR}/ECS/EnemyAIComponent.cpp
+    ${GAME_SRC_DIR}/ECS/NPCAIComponent.cpp
+    ${GAME_SRC_DIR}/ECS/PickupComponent.cpp
     ${GAME_SRC_DIR}/stb_image_write_impl.cpp
 )
 

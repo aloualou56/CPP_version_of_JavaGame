@@ -31,6 +31,10 @@ class Map {
        static const int MAP_HEIGHT = 50;
        static const int TILE_SIZE = 96;  // 16 * 6 κλίμακα
        static const int NUM_TILE_TYPES = 35;
+       // Opaque grass (tilesets/grass.png) drawn under every cell first: all
+       // other tiles (grass tufts, dirt, roads, walls, water) have transparent
+       // parts and would otherwise show the screen's clear color through them.
+       static const int GROUND_TILE = 3;
 
        struct TileType {
            SDL_Texture* texture = nullptr;

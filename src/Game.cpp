@@ -202,10 +202,11 @@ void Game::init(const char *title, int xpos, int ypos, int width, int height, bo
         SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "SDL_Init succeeded");
 
         #ifdef __ANDROID__
-            // Android-specific hints for proper OpenGL ES texture handling
+            // Use the OpenGL ES renderer on Android. (Pixel-art nearest
+            // filtering is set per texture by TextureManager - SDL3 has no
+            // global SDL2-style RENDER_SCALE_QUALITY hint.)
             SDL_SetHint(SDL_HINT_RENDER_DRIVER, "opengles2");
-            SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "0");
-            SDL_Log("[ANDROID] Set OpenGL ES renderer hints");
+            SDL_Log("[ANDROID] Set OpenGL ES renderer hint");
         #endif
 
         window = SDL_CreateWindow(title, width, height, flags);
@@ -373,6 +374,11 @@ void Game::handleEvents() {
                 long long fid = (long long)event.tfinger.fingerID;
                 float fx = event.tfinger.x * (float)Game::screenWidth;
                 float fy = event.tfinger.y * (float)Game::screenHeight;
+                if (!Game::gameStarted) {
+                    // Character select on touch screens: boy is drawn on the left, girl on the right
+                    selectCharacter(fx < Game::screenWidth / 2.0f ? 1 : 2);
+                    break;
+                }
                 if (fx < (Game::screenWidth / 2) && Game::movementFingerId == -1) {
                     Game::movementFingerId = fid;
                     Game::movementActive = true;
@@ -491,6 +497,9 @@ void Game::renderCharacterSelect() {
 }
 
 void Game::render() {
+    // SDL_RenderClear uses the current draw color, which would otherwise be
+    // whatever the previous frame drew last (e.g. the red Android attack button).
+    SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
     SDL_RenderClear(renderer);
 
     if (!Game::gameStarted) {

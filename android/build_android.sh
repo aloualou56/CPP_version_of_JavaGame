@@ -420,7 +420,7 @@ main() {
     # Build SDL2 for Android
     build_sdl2_for_android
 
-    # --- Automated native library packaging ---
+    # package native libs
     log_info "Packaging native libraries into jniLibs..."
     JNI_LIBS_DIR="$ANDROID_DIR/app/src/main/jniLibs"
     for ABI in armeabi-v7a arm64-v8a; do
